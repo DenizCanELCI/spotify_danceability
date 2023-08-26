@@ -17,10 +17,3 @@ if __name__ == '__main__':
 import numpy as np
 import pandas as pd
 import seaborn as sns
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 500)
-
-
-df_ = pd.read_csv("D:\Jupyter_workspace\VBO\sp_dataset.csv")
-
-df_.head()

@@ -1,20 +1,3 @@
-
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-#def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    #print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-   
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -24,7 +7,7 @@ pd.set_option('display.width', 500)
 
 df_ = pd.read_csv("D:\Jupyter_workspace\VBO\sp_dataset.csv")
 
-df_.head()
+df_.head() #dd
 
 df_.info()
 
@@ -107,8 +90,19 @@ df['track_genre'].nunique()
 
 df['track_genre'].unique()
 
-
-
 df.info()
+
 # Encoding & Scaling
 
+def rare_encoder(dataframe, rare_ratio):
+    temp_df = dataframe.copy()
+
+    rare_columns = [col for col in temp_df.columns if temp_df[col].dtypes == 'O'
+                    and (temp_df[col].value_counts() / len(temp_df) < rare_ratio).any(axis=None)]
+
+    for var in rare_columns:
+        tmp = temp_df[var].value_counts() / len(temp_df)
+        rare_labels = tmp[tmp < rare_ratio].index
+        temp_df[var] = np.where(temp_df[var].isin(rare_labels), 'Rare', temp_df[var])
+
+    return temp_df

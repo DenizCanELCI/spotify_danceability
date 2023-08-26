@@ -15,7 +15,6 @@
 if __name__ == '__main__':
     print_hi('PyCharm')
 
-
 import numpy as np
 import pandas as pd
 import seaborn as sns

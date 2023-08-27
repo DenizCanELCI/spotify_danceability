@@ -106,3 +106,5 @@ def rare_encoder(dataframe, rare_ratio):
         temp_df[var] = np.where(temp_df[var].isin(rare_labels), 'Rare', temp_df[var])
 
     return temp_df
+
+# 27.08

@@ -37,9 +37,28 @@ df_.isnull().sum() #No null values
 
 df_.describe().T
 
-# EDA
+
+#######################################################################
+# 1. Exploratory Data Analysis
+#######################################################################
 
 df = df_.copy()
+def check_df(dataframe, head=5):
+    print("#################### Shape ######################")
+    print(dataframe.shape)
+    print("#################### Types ######################")
+    print(dataframe.dtypes)
+    print("#################### Head #######################")
+    print(dataframe.head(head))
+    print("#################### Tail #######################")
+    print(dataframe.tail(head))
+    print("#################### NA #########################")
+    print(dataframe.isnull().sum())
+    print("#################### Quantiles ##################")
+    print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
+
+check_df(df[num_cols])
+
 def grab_col_names(dataframe, cat_th=10, car_th=20):
     """
 
@@ -159,4 +178,56 @@ df[num_cols]
 
 for col in num_cols:
     num_summary(df, col)
+
+
+def target_summary_with_num(dataframe, target, numerical_col):
+    print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
+
+for col in num_cols:
+    target_summary_with_num(df, outcome, col)
+def target_summary_with_cat(dataframe, target, categorical_col):
+    print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
+
+for col in cat_cols:
+    target_summary_with_cat(df, outcome, col)
+
+def correlation_matrix(df, cols):
+    fig = plt.gcf()
+    fig.set_size_inches(10, 8)
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={"size": 12}, linecolor="w", cmap="RdBu")
+    plt.show(block=True)
+
+import matplotlib.pyplot as plt
+correlation_matrix(df, num_cols)
+
+#######################################################################
+# 2. Data Preprocessing & Feature Engineering
+#######################################################################
+
+def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
+    quartile1 = dataframe[col_name].quantile(q1)
+    quartile3 = dataframe[col_name].quantile(q3)
+    interquantile_range = quartile3 - quartile1
+    up_limit = quartile3 + 1.5 * interquantile_range
+    low_limit = quartile1 - 1.5 * interquantile_range
+    return low_limit, up_limit
+
+
+def replace_with_threshoulds(dataframe, variable):
+    low_limit, up_limit = outlier_thresholds(dataframe, variable)
+    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
+    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+
+
+def check_outlier(dataframe, col_name):
+    low_limit, up_limit = outlier_thresholds(dataframe, col_name)
+    if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
+        return True
+    else:
+        return False
+
+for col in num_cols:
+    check_outlier(df, col)
 

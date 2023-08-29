@@ -5,13 +5,35 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
 
-df_ = pd.read_csv("D:\Jupyter_workspace\VBO\sp_dataset.csv")
+df = pd.read_csv("dataset/dataset.csv")
 
 df_.head() #dd
 
 df_.info()
 
-df_.isnull().sum() #No null values
+df_.isnull().sum() #There is one null value
+
+df.isnull().sum()
+
+"""
+artists             1
+album_name          1
+track_name          1
+"""
+df[df["artists"].isnull()]
+
+"""
+                    track_id artists album_name track_name  popularity  \
+65900  1kR4gIb7nGxHPI3D2ifs59     NaN        NaN        NaN           0   
+       duration_ms  explicit  danceability  energy  key  loudness  mode  \
+65900            0     False         0.501   0.583    7     -9.46     0   
+       speechiness  acousticness  instrumentalness  liveness  valence  \
+65900       0.0605          0.69           0.00396    0.0747    0.734   
+         tempo  time_signature track_genre  
+65900  138.391               4       k-pop  
+"""
+
+df = df.drop(65900, axis=0)
 
 df_.describe().T
 

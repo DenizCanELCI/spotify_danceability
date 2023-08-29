@@ -228,6 +228,6 @@ def check_outlier(dataframe, col_name):
     else:
         return False
 
-for col in num_cols:
+for col in num_cols: #burası
     check_outlier(df, col)
 

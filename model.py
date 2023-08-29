@@ -227,7 +227,7 @@ def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
     return low_limit, up_limit
 
 
-def replace_with_threshoulds(dataframe, variable):
+def replace_with_thresholds(dataframe, variable):
     low_limit, up_limit = outlier_thresholds(dataframe, variable)
     dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
     dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
@@ -242,3 +242,4 @@ def check_outlier(dataframe, col_name):
 
 for col in num_cols: #burası
     check_outlier(df, col)
+

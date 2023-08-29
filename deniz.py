@@ -22,13 +22,15 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
 
-df_ = pd.read_csv("D:\Jupyter_workspace\VBO\sp_dataset.csv")
+df_ = pd.read_csv("H:\Desktop\miuul\Proje\dataset.csv")
 
 df_.head()
 
 df_.info()
 
-df_.isnull().sum() #No null values
+df_.shape
+
+df_.isnull().sum() # artist, album_name ve track_name de boş değerler var
 
 df_.describe().T
 

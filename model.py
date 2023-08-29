@@ -1,3 +1,4 @@
+
 """
 track_id: The Spotify ID for the track
 artists: The artists' names who performed the track. If there is more than one artist, they are separated by a ;
@@ -133,23 +134,12 @@ df['track_genre'].unique()
 
 df.info()
 
+
 outcome = 'danceability'
 
 # Encoding & Scaling
 
 
-def rare_encoder(dataframe, rare_ratio):
-    temp_df = dataframe.copy()
-
-    rare_columns = [col for col in temp_df.columns if temp_df[col].dtypes == 'O'
-                    and (temp_df[col].value_counts() / len(temp_df) < rare_ratio).any(axis=None)]
-
-    for var in rare_columns:
-        tmp = temp_df[var].value_counts() / len(temp_df)
-        rare_labels = tmp[tmp < rare_ratio].index
-        temp_df[var] = np.where(temp_df[var].isin(rare_labels), 'Rare', temp_df[var])
-
-    return temp_df
 
 def cat_summary(dataframe, col_name, plot=False):
     print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
@@ -230,4 +220,3 @@ def check_outlier(dataframe, col_name):
 
 for col in num_cols: #burası
     check_outlier(df, col)
-

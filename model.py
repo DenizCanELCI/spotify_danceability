@@ -249,5 +249,5 @@ for col in num_cols: #burası
 abc = 2
 
 #AHTER
-
-
+#p2p2p
+### pypy

@@ -248,3 +248,6 @@ for col in num_cols: #burası
 
 abc = 2
 
+#AHTER
+
+

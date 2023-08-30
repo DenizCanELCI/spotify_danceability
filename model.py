@@ -244,4 +244,5 @@ for col in num_cols: #burası
     check_outlier(df, col)
 
 # Mehmet merhaba diyor
+# İkinci merhaba
 

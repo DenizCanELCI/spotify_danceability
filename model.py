@@ -242,4 +242,5 @@ def check_outlier(dataframe, col_name):
 
 for col in num_cols: #burası
     check_outlier(df, col)
+#AHTER
 

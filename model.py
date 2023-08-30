@@ -246,3 +246,5 @@ for col in num_cols: #burası
 # Mehmet merhaba diyor
 # İkinci merhaba
 
+abc = 2
+

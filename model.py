@@ -24,13 +24,14 @@ track_genre: The genre in which the track belongs
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
 
-df = pd.read_csv("dataset/dataset.csv")
+df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
-df_.head() #dd
+df_.head()
 
 df_.info()
 
@@ -79,8 +80,6 @@ def check_df(dataframe, head=5):
     print(dataframe.isnull().sum())
     print("#################### Quantiles ##################")
     print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
-
-check_df(df[num_cols])
 
 def grab_col_names(dataframe, cat_th=10, car_th=20):
     """
@@ -156,6 +155,7 @@ df['track_genre'].unique()
 
 df.info()
 
+check_df(df[num_cols])
 
 outcome = 'danceability'
 
@@ -174,7 +174,8 @@ def cat_summary(dataframe, col_name, plot=False):
 df[cat_cols]
 
 for col in cat_cols:
-    cat_summary(df, col, plot=True)
+    cat_summary(df, col, plot=False)
+
 
 def num_summary(dataframe, numerical_col, plot=False):
     quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
@@ -211,7 +212,6 @@ def correlation_matrix(df, cols):
     fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={"size": 12}, linecolor="w", cmap="RdBu")
     plt.show(block=True)
 
-import matplotlib.pyplot as plt
 correlation_matrix(df, num_cols)
 
 #######################################################################
@@ -240,9 +240,13 @@ def check_outlier(dataframe, col_name):
     else:
         return False
 
+num_cols = num_cols.remove('Unnamed: 0')
+
 for col in num_cols: #burası
     check_outlier(df, col)
 
+
+df[num_cols]
 # Mehmet merhaba diyor
 # İkinci merhaba
 
@@ -254,3 +258,5 @@ abc = 2
 
 # üçüncü merhaba
 #hello
+
+# :DD

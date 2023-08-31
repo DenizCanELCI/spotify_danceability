@@ -259,13 +259,14 @@ df[num_cols]
 for col in num_cols:
     print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
 
+# Outlier'ları iyileştiriyoruz
 for col in num_cols:
     def replace_with_thresholds(dataframe, variable):
         low_limit, up_limit = outlier_thresholds(dataframe, variable)
         dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
         dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
 
-# Tekrar kontrol ediyoruz
+# Tekrar kontrol ediyoruz outlier durumlarını
 for col in num_cols:
     print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
 ####################################################################################################################
@@ -309,6 +310,18 @@ for col in num_cols:
 #TASK - Encoding
 
 df.head()
+
+df[cat_cols] # 'explicit', 'mode', 'time_signature'
+df['time_signature'].unique() # ordinality var! Bkz açıklama docstring'i.
+
+temp_df = df.copy()
+temp_df['explicit'].unique()
+temp_df['explicit'] = [1 if el == True else 0 for el in temp_df['explicit']]
+# True False yerine 1-0 a çevirdik.
+
+df = temp_df.copy()
+df.head(10)
+
 
 ####################################################################################################################
 

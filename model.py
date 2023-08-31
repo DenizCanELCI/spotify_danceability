@@ -29,24 +29,23 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
 
-df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+df_ = pd.read_csv("dataset.csv")
 
-df_.head()
+"""df_.head()
 
 df_.info()
 
 df_.isnull().sum() #There is one null value
 
-df.isnull().sum()
 
-"""
+
 artists             1
 album_name          1
 track_name          1
-"""
+
 df[df["artists"].isnull()]
 
-"""
+
                     track_id artists album_name track_name  popularity  \
 65900  1kR4gIb7nGxHPI3D2ifs59     NaN        NaN        NaN           0   
        duration_ms  explicit  danceability  energy  key  loudness  mode  \
@@ -55,11 +54,12 @@ df[df["artists"].isnull()]
 65900       0.0605          0.69           0.00396    0.0747    0.734   
          tempo  time_signature track_genre  
 65900  138.391               4       k-pop  
-"""
 
-df = df.drop(65900, axis=0)
 
-df_.describe().T
+df_ = df_.drop(65900, axis=0)
+
+
+df_.describe().T"""
 
 
 #######################################################################
@@ -67,6 +67,8 @@ df_.describe().T
 #######################################################################
 
 df = df_.copy()
+
+df = df.drop("Unnamed: 0", axis=1)
 def check_df(dataframe, head=5):
     print("#################### Shape ######################")
     print(dataframe.shape)
@@ -80,6 +82,12 @@ def check_df(dataframe, head=5):
     print(dataframe.isnull().sum())
     print("#################### Quantiles ##################")
     print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
+
+except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
+
+check_df(except_explicit)
+# check_df fonksiyonu çalıştırıldıktan sonra boş değerler olduğu görülür.
+
 
 def grab_col_names(dataframe, cat_th=10, car_th=20):
     """
@@ -158,8 +166,6 @@ df.info()
 check_df(df[num_cols])
 
 outcome = 'danceability'
-
-# Encoding & Scaling
 
 
 
@@ -247,19 +253,7 @@ for col in num_cols: #burası
 
 
 df[num_cols]
-# Mehmet merhaba diyor
-# İkinci merhaba
 
-abc = 2
-
-#AHTER
-#p2p2p
-### pypy
-
-# üçüncü merhaba
-#hello
-
-# :DD
 ####################################################################################################################
 #TASK - Outlier tespiti
 

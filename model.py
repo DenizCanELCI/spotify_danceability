@@ -255,26 +255,51 @@ for col in num_cols: #burası
 df[num_cols]
 
 ####################################################################################################################
-#TASK - Outlier tespiti
+#TASK - Outlier tespiti ve kaldirilmasi
+for col in num_cols:
+    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
+
+for col in num_cols:
+    def replace_with_thresholds(dataframe, variable):
+        low_limit, up_limit = outlier_thresholds(dataframe, variable)
+        dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
+        dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+
+# Tekrar kontrol ediyoruz
 for col in num_cols:
     print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
 ####################################################################################################################
 
 
 ####################################################################################################################
+
 #TASK - Lof ile outlier tespiti
-from sklearn.neighbors import LocalOutlierFactor
-clf = LocalOutlierFactor(n_neighbors=20)
-lof_out = clf.fit_predict(df)
-len(lof_out)
-Counter(lof_out)
-
-df_scores = clf.negative_outlier_factor_
-np.sort(df_scores)[0:5]
-
-scores = pd.DataFrame(np.sort(df_scores))
-scores.plot(stacked=True, xlim=[0, 50], style='.-')
-plt.show()
+# from sklearn.neighbors import LocalOutlierFactor
+# clf = LocalOutlierFactor(n_neighbors=20)
+# lof_out = clf.fit_predict(df[num_cols])
+# len(lof_out)
+# Counter(lof_out)
+#
+# df_scores = clf.negative_outlier_factor_
+# np.sort(df_scores)[0:5]
+#
+# scores = pd.DataFrame(np.sort(df_scores))
+# scores.plot(stacked=True, xlim=[0, 50], style='.-')
+# plt.show()
+#
+# th = np.sort(df_scores)[3]
+#
+# df[df_scores < th]
+#
+# df[df_scores < th].shape
+#
+# df.describe([0.01, 0.05, 0.75, 0.90, 0.99]).T
+#
+# df[df_scores < th].index
+#
+# df[df_scores < th].drop(axis=0, labels=df[df_scores < th].index)
+#
+# df.shape
 ####################################################################################################################
 
 
@@ -282,6 +307,8 @@ plt.show()
 #
 ####################################################################################################################
 #TASK - Encoding
+
+df.head()
 
 ####################################################################################################################
 

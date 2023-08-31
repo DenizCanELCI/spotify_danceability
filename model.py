@@ -29,7 +29,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 
 
-df_ = pd.read_csv("dataset.csv")
+df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
 """df_.head()
 
@@ -85,7 +85,7 @@ def check_df(dataframe, head=5):
 
 except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
 
-check_df(except_explicit)
+check_df(except_explicit) #DE: bende except_explicit için de hata verdi, sadece numeric değerler gönderilebilir
 # check_df fonksiyonu çalıştırıldıktan sonra boş değerler olduğu görülür.
 
 
@@ -256,14 +256,25 @@ df[num_cols]
 
 ####################################################################################################################
 #TASK - Outlier tespiti
-
+for col in num_cols:
+    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
 ####################################################################################################################
-
 
 
 ####################################################################################################################
 #TASK - Lof ile outlier tespiti
+from sklearn.neighbors import LocalOutlierFactor
+clf = LocalOutlierFactor(n_neighbors=20)
+lof_out = clf.fit_predict(df)
+len(lof_out)
+Counter(lof_out)
 
+df_scores = clf.negative_outlier_factor_
+np.sort(df_scores)[0:5]
+
+scores = pd.DataFrame(np.sort(df_scores))
+scores.plot(stacked=True, xlim=[0, 50], style='.-')
+plt.show()
 ####################################################################################################################
 
 

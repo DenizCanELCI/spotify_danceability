@@ -26,7 +26,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 500)
+pd.set_option('display.width', None)
 
 
 df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
@@ -85,7 +85,7 @@ def check_df(dataframe, head=5):
 
 except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
 
-check_df(except_explicit) #DE: bende except_explicit için de hata verdi, sadece numeric değerler gönderilebilir
+# check_df(except_explicit) #DE: bende except_explicit için de hata verdi, sadece numeric değerler gönderilebilir
 # check_df fonksiyonu çalıştırıldıktan sonra boş değerler olduğu görülür.
 
 
@@ -168,7 +168,6 @@ check_df(df[num_cols])
 outcome = 'danceability'
 
 
-
 def cat_summary(dataframe, col_name, plot=False):
     print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
                         "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
@@ -204,6 +203,7 @@ def target_summary_with_num(dataframe, target, numerical_col):
 
 for col in num_cols:
     target_summary_with_num(df, outcome, col)
+
 def target_summary_with_cat(dataframe, target, categorical_col):
     print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
 
@@ -246,11 +246,11 @@ def check_outlier(dataframe, col_name):
     else:
         return False
 
-num_cols = num_cols.remove('Unnamed: 0')
+# num_cols.remove('Unnamed: 0')
+num_cols
 
-for col in num_cols: #burası
+for col in num_cols:
     check_outlier(df, col)
-
 
 df[num_cols]
 
@@ -261,14 +261,13 @@ for col in num_cols:
 
 # Outlier'ları iyileştiriyoruz
 for col in num_cols:
-    def replace_with_thresholds(dataframe, variable):
-        low_limit, up_limit = outlier_thresholds(dataframe, variable)
-        dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
-        dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+    replace_with_thresholds(df, col)
+
 
 # Tekrar kontrol ediyoruz outlier durumlarını
 for col in num_cols:
     print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
+#outlier kalmadı!
 ####################################################################################################################
 
 
@@ -304,7 +303,6 @@ for col in num_cols:
 ####################################################################################################################
 
 
-
 #
 ####################################################################################################################
 #TASK - Encoding
@@ -320,16 +318,93 @@ temp_df['explicit'] = [1 if el == True else 0 for el in temp_df['explicit']]
 # True False yerine 1-0 a çevirdik.
 
 df = temp_df.copy()
-df.head(10)
+df['explicit'].unique() # array([0, 1], dtype=int64)
 
+df.style.set_properties(**{'text-align': 'center'})
+df.head()
+
+df.columns
+cat_but_car
+df[cat_but_car]
+model_cols = [col for col in df.columns if col not in cat_but_car]
+df[model_cols]
 
 ####################################################################################################################
+####################################################################################################################
+#TASK - Encoding
 
+####################################################################################################################
 
 #######################################################################
 # 3. Base Model
 #######################################################################
+from sklearn.ensemble import RandomForestRegressor
 
+# rfr_model = RandomForestRegressor(n_estimators=100,criterion="squared_error",
+#                                   max_depth=None,
+#                                   min_samples_split=2,
+#                                   min_samples_leaf=1,
+#                                   min_weight_fraction_leaf=0.0,
+#                                   max_features=1.0,
+#                                   max_leaf_nodes=None,
+#                                   min_impurity_decrease=0.0,
+#                                   bootstrap=True,
+#                                   oob_score=False,
+#                                   random_state=17)
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier, AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate, GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+from catboost import CatBoostRegressor
+
+def base_models(X, y, scoring="f1"):
+    print("Base Models....")
+    regressors = [
+        ("LR", LinearRegression()),
+        ("KNN", KNeighborsRegressor()),
+        ("SVC", SVR()),
+        ("CART", DecisionTreeRegressor()),
+        ("RF", RandomForestRegressor()),
+        ("Adaboost", AdaBoostRegressor()),
+        ("GBM", GradientBoostingRegressor()),
+        ("XGBoost", XGBRegressor()),
+        ("LightGBM", LGBMRegressor(verbose=-1)),
+        ("CatBoost", CatBoostRegressor(verbose=False))
+    ]
+
+    for name, regressor in regressors:
+        cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring)
+        print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
+    return
+
+from sklearn.preprocessing import StandardScaler
+# Standartlaştırma
+X_scaled = StandardScaler().fit_transform(df[num_cols])
+df[num_cols] = pd.DataFrame(X_scaled, columns=df[num_cols].columns)  # İsimlendirmeleri Düzeltiyoruz
+
+y = df[outcome]
+X = df.copy()
+X.drop([outcome], axis=1, inplace=True)
+for col in cat_but_car:
+    X.drop([col], axis=1,inplace=True)
+
+cols = df.columns[df.eq('Gen Hoshino').any()]
+
+df['track_id']
+base_models(X, y) #burada kaldık - hata verdi!!!
 
 #######################################################################
 # 4. Automated Hyperparameter Optimization

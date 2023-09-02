@@ -69,6 +69,8 @@ df_.describe().T"""
 df = df_.copy()
 
 df = df.drop("Unnamed: 0", axis=1)
+
+outcome = 'danceability'
 def check_df(dataframe, head=5):
     print("#################### Shape ######################")
     print(dataframe.shape)
@@ -150,7 +152,7 @@ def grab_col_names(dataframe, cat_th=10, car_th=20):
     return cat_cols, num_cols, cat_but_car
 
 cat_cols, num_cols, cat_but_car = grab_col_names(df)
-
+num_cols.remove(outcome)
 df[cat_cols]
 
 df[num_cols]
@@ -164,8 +166,6 @@ df['track_genre'].unique()
 df.info()
 
 check_df(df[num_cols])
-
-outcome = 'danceability'
 
 
 def cat_summary(dataframe, col_name, plot=False):
@@ -301,7 +301,19 @@ for col in num_cols:
 #
 # df.shape
 ####################################################################################################################
-
+# TASK - Spotify Web API
+# import spotipy
+# from spotipy.oauth2 import SpotifyClientCredentials
+#
+# client_id = '1cc97646ee854447944864d5e0eb3ab8'
+# client_secret = 'your_client_secret'
+#
+# client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+# sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+#
+# results = sp.search(q='weezer', limit=20)
+# for idx, track in enumerate(results['tracks']['items']):
+#     print(idx, track['name'])
 
 #
 ####################################################################################################################
@@ -351,16 +363,7 @@ from sklearn.ensemble import RandomForestRegressor
 #                                   bootstrap=True,
 #                                   oob_score=False,
 #                                   random_state=17)
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate, GridSearchCV
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import StandardScaler
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
-from catboost import CatBoostClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
@@ -369,26 +372,6 @@ from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientB
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
-
-def base_models(X, y, scoring="f1"):
-    print("Base Models....")
-    regressors = [
-        ("LR", LinearRegression()),
-        ("KNN", KNeighborsRegressor()),
-        ("SVC", SVR()),
-        ("CART", DecisionTreeRegressor()),
-        ("RF", RandomForestRegressor()),
-        ("Adaboost", AdaBoostRegressor()),
-        ("GBM", GradientBoostingRegressor()),
-        ("XGBoost", XGBRegressor()),
-        ("LightGBM", LGBMRegressor(verbose=-1)),
-        ("CatBoost", CatBoostRegressor(verbose=False))
-    ]
-
-    for name, regressor in regressors:
-        cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring)
-        print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
-    return
 
 from sklearn.preprocessing import StandardScaler
 # Standartlaştırma
@@ -409,23 +392,35 @@ lrmodel = LinearRegression()
 
 from sklearn.model_selection import train_test_split
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=17)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
 lrmodel.fit(X_train, y_train)
 
+df[outcome]
 y_pred = lrmodel.predict(X_test)
-accuracy = lrmodel.score(X_test, y_test)
+from sklearn.model_selection import cross_validate, GridSearchCV
+
+# cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
+mape = MAPE(y_test, y_pred)
+
+# print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
+
+# accuracy = lrmodel.score(X_test, y_test)
+accuracy_lr = (100 - mape)/100. # Accuracy = 0.7950883633864175
 #----------------------------------------------------------------------------
 rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
 rfr_model.fit(X_train, y_train)
 
 y_pred = rfr_model.predict(X_test)
+def MAPE(Y_actual,Y_Predicted):
+    mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
+    return mape
 
 errors = abs(y_pred - y_test)
-mape = 100 * (errors / y_test)
-accuracy = 100 - np.mean(mape)
+mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
+accuracy = 100 - mape
 
-print('Accuracy:', round(accuracy, 2), '%.') #47.02
+print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 79.71 %.
 #----------------------------------------------------------------------------
 
 xgbr_model = XGBRegressor()
@@ -436,11 +431,31 @@ xgbr_model.get_params
 y_pred = xgbr_model.predict(X_test)
 
 errors = abs(y_pred - y_test)
-mape = 100 * (errors / y_test)
+mape = 100 * (errors / (y_test+0.1))
 accuracy = 100 - np.mean(mape)
 
-print('Accuracy:', round(accuracy, 2), '%.')
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 87.1 %.
 #----------------------------------------------------------------------------
+def base_models(X, y, scoring="f1"):
+    print("Base Models....")
+    regressors = [
+        ("LR", LinearRegression()),
+        ("KNN", KNeighborsRegressor()),
+        ("SVC", SVR()),
+        ("CART", DecisionTreeRegressor()),
+        ("RF", RandomForestRegressor()),
+        ("Adaboost", AdaBoostRegressor()),
+        ("GBM", GradientBoostingRegressor()),
+        ("XGBoost", XGBRegressor()),
+        ("LightGBM", LGBMRegressor(verbose=-1)),
+        ("CatBoost", CatBoostRegressor(verbose=False))
+    ]
+
+    for name, regressor in regressors:
+        cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring,)
+        print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
+    return
+
 base_models(X, y) #burada kaldık - hata verdi!!!
 
 #######################################################################

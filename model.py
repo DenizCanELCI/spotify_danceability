@@ -404,11 +404,64 @@ for col in cat_but_car:
 cols = df.columns[df.eq('Gen Hoshino').any()]
 
 df['track_id']
+#----------------------------------------------------------------------------
+lrmodel = LinearRegression()
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=17)
+
+lrmodel.fit(X_train, y_train)
+
+y_pred = lrmodel.predict(X_test)
+accuracy = lrmodel.score(X_test, y_test)
+#----------------------------------------------------------------------------
+rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
+rfr_model.fit(X_train, y_train)
+
+y_pred = rfr_model.predict(X_test)
+
+errors = abs(y_pred - y_test)
+mape = 100 * (errors / y_test)
+accuracy = 100 - np.mean(mape)
+
+print('Accuracy:', round(accuracy, 2), '%.') #47.02
+#----------------------------------------------------------------------------
+
+xgbr_model = XGBRegressor()
+xgbr_model.fit(X_train, y_train)
+
+xgbr_model.get_params
+#
+y_pred = xgbr_model.predict(X_test)
+
+errors = abs(y_pred - y_test)
+mape = 100 * (errors / y_test)
+accuracy = 100 - np.mean(mape)
+
+print('Accuracy:', round(accuracy, 2), '%.')
+#----------------------------------------------------------------------------
 base_models(X, y) #burada kaldık - hata verdi!!!
 
 #######################################################################
 # 4. Automated Hyperparameter Optimization
 #######################################################################
+
+cart_params = {"max_depth": range(1, 20),
+               "min_samples_split": range(2, 30)}
+
+rf_params = {"max_depth": [8, 15, None],
+             "max_features": [5, 7, "auto"],
+             "min_samples_split": [15, 20],
+             "n_estimators": [200, 300]}
+
+xgboost_params = {"learning_rate": [0.1, 0.01],
+                  "max_depth": [5, 8],
+                  "n_estimators": [100, 200],
+                  "colsample_bytree": [0.5, 1]}
+
+lightgbm_params = {"learning_rate": [0.01, 0.1],
+                   "n_estimators": [300, 500]}
 
 
 

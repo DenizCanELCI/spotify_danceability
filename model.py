@@ -29,7 +29,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+df_ = pd.read_csv("dataset.csv")
 
 """df_.head()
 
@@ -257,7 +257,7 @@ df[num_cols]
 ####################################################################################################################
 #TASK - Outlier tespiti ve kaldirilmasi
 for col in num_cols:
-    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
+    print(f'col = {col} =  {check_outlier(df, col)}')
 
 # Outlier'ları iyileştiriyoruz
 for col in num_cols:
@@ -266,7 +266,7 @@ for col in num_cols:
 
 # Tekrar kontrol ediyoruz outlier durumlarını
 for col in num_cols:
-    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
+    print(f'col = {col} =  {check_outlier(df, col)}')
 #outlier kalmadı!
 ####################################################################################################################
 
@@ -436,24 +436,22 @@ accuracy = 100 - np.mean(mape)
 
 print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 87.1 %.
 #----------------------------------------------------------------------------
-def base_models(X, y, scoring="f1"):
+def base_models(X, y, scoring="neg_mean_squared_error"):
     print("Base Models....")
-    regressors = [
-        ("LR", LinearRegression()),
-        ("KNN", KNeighborsRegressor()),
-        ("SVC", SVR()),
-        ("CART", DecisionTreeRegressor()),
-        ("RF", RandomForestRegressor()),
-        ("Adaboost", AdaBoostRegressor()),
-        ("GBM", GradientBoostingRegressor()),
-        ("XGBoost", XGBRegressor()),
-        ("LightGBM", LGBMRegressor(verbose=-1)),
-        ("CatBoost", CatBoostRegressor(verbose=False))
-    ]
+    regressors = [("LR", LinearRegression()),
+                  ("KNN", KNeighborsRegressor()),
+                  ("CART", DecisionTreeRegressor()),
+                  ("RF", RandomForestRegressor()),
+                  ("Adaboost", AdaBoostRegressor()),
+                  ("GBM", GradientBoostingRegressor()),
+                  ("XGBoost", XGBRegressor()),
+                  ("LightGBM", LGBMRegressor(verbose=-1)),
+                  # ("CatBoost", CatBoostClassifier(verbose=False))
+                  ]
 
     for name, regressor in regressors:
-        cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring,)
-        print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
+        cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring)
+        print(f"{scoring}: {round(-cv_results['test_score'].mean(), 4)} ({name}) ")
     return
 
 base_models(X, y) #burada kaldık - hata verdi!!!

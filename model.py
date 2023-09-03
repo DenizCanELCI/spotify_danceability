@@ -29,7 +29,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv("dataset.csv")
+df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
 """df_.head()
 
@@ -67,6 +67,24 @@ df_.describe().T"""
 #######################################################################
 
 df = df_.copy()
+#-----------------------------------------------*************************************************
+# TASK - Levitas kaç şarkıda geçiyor bulma
+# lst = []
+# for i, el in enumerate(list(df['artists'])):
+#     # lst.append(str(i))
+#     if type(el) == float:
+#         lst.append({i,0})
+#     elif 'evitas' in el:
+#         lst.append(1)
+#     else: lst.append(0)
+#
+# lst.count(float(1))
+#
+# indexes = [i for i in range(len(lst)) if lst[i] == 1]
+#
+# df.iloc[40531]
+
+#-----------------------------------------------*************************************************
 
 df = df.drop("Unnamed: 0", axis=1)
 
@@ -88,7 +106,6 @@ def check_df(dataframe, head=5):
 except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
 
 # check_df(except_explicit) #DE: bende except_explicit için de hata verdi, sadece numeric değerler gönderilebilir
-# check_df fonksiyonu çalıştırıldıktan sonra boş değerler olduğu görülür.
 
 
 def grab_col_names(dataframe, cat_th=10, car_th=20):
@@ -167,6 +184,8 @@ df.info()
 
 check_df(df[num_cols])
 
+check_df(df[cat_cols])
+
 
 def cat_summary(dataframe, col_name, plot=False):
     print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
@@ -198,11 +217,11 @@ for col in num_cols:
     num_summary(df, col)
 
 
-def target_summary_with_num(dataframe, target, numerical_col):
-    print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
-
-for col in num_cols:
-    target_summary_with_num(df, outcome, col)
+# def target_summary_with_num(dataframe, target, numerical_col):
+#     print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
+#
+# for col in num_cols:
+#     target_summary_with_num(df, outcome, col)
 
 def target_summary_with_cat(dataframe, target, categorical_col):
     print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
@@ -223,6 +242,9 @@ correlation_matrix(df, num_cols)
 #######################################################################
 # 2. Data Preprocessing & Feature Engineering
 #######################################################################
+df.isnull().any()
+
+
 
 def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
     quartile1 = dataframe[col_name].quantile(q1)
@@ -388,6 +410,10 @@ cols = df.columns[df.eq('Gen Hoshino').any()]
 
 df['track_id']
 #----------------------------------------------------------------------------
+def MAPE(Y_actual,Y_Predicted):
+    mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
+    return mape
+
 lrmodel = LinearRegression()
 
 from sklearn.model_selection import train_test_split
@@ -412,9 +438,7 @@ rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
 rfr_model.fit(X_train, y_train)
 
 y_pred = rfr_model.predict(X_test)
-def MAPE(Y_actual,Y_Predicted):
-    mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
-    return mape
+
 
 errors = abs(y_pred - y_test)
 mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
@@ -436,6 +460,15 @@ accuracy = 100 - np.mean(mape)
 
 print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 87.1 %.
 #----------------------------------------------------------------------------
+lgbm_model = LGBMRegressor(verbose=-1)
+lgbm_model.fit(X_train, y_train)
+
+lgbm_model.get_params()
+#{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 1.0, 'importance_type': 'split', 'learning_rate': 0.1, 'max_depth': -1, 'min_child_samples': 20, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 100, 'n_jobs': None, 'num_leaves': 31, 'objective': None, 'random_state': None, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbose': -1}
+
+
+
+#----------------------------------------------------------------------------
 def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
     print("Base Models....")
     regressors = [
@@ -445,7 +478,7 @@ def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
         # ("CART", DecisionTreeRegressor()),
         # ("RF", RandomForestRegressor()),
         ("Adaboost", AdaBoostRegressor()),
-        # ("GBM", GradientBoostingRegressor()),
+        ("GBM", GradientBoostingRegressor()),
         ("XGBoost", XGBRegressor()),
         ("LightGBM", LGBMRegressor(verbose=-1)),
         ("CatBoost", CatBoostRegressor(verbose=False))
@@ -468,18 +501,35 @@ base_models(X, y)
 cart_params = {"max_depth": range(1, 20),
                "min_samples_split": range(2, 30)}
 
-rf_params = {"max_depth": [8, 15, None],
-             "max_features": [5, 7, "auto"],
-             "min_samples_split": [15, 20],
-             "n_estimators": [200, 300]}
+lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
+                   'max_depth':range(4,16),
+                   'n_estimators':range(100,300,50)}
+regressors_hpo = [
+    # ("XGBoost", XGBRegressor(), xgb_params),
+    ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
+    # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
+]
 
-xgboost_params = {"learning_rate": [0.1, 0.01],
-                  "max_depth": [5, 8],
-                  "n_estimators": [100, 200],
-                  "colsample_bytree": [0.5, 1]}
+def hyperparameter_optimization(X, y, cv=3, scoring="r2"):
+    print("Hyperparameter Optimization....")
+    best_models = {}
+    for name, regressor, params in regressors_hpo:
+        print(f"########## {name} ##########")
+        cv_results = cross_validate(regressor, X, y, cv=cv, scoring=scoring)
+        print(f"{scoring} (Before): {round(cv_results['test_score'].mean(), 4)}")
 
-lightgbm_params = {"learning_rate": [0.01, 0.1],
-                   "n_estimators": [300, 500]}
+        gs_best = GridSearchCV(regressor, params, cv=cv, n_jobs=-1, verbose=False).fit(X,y)
+        final_model = regressor.set_params(**gs_best.best_params_)
 
+        cv_results = cross_validate(final_model, X, y, cv=cv, scoring=scoring)
+        print(f"{scoring} (After): {round(cv_results['test_score'].mean(), 4)}")
+        print(f"{name} best params: {gs_best.best_params_}", end="\n\n")
+        best_models[name] = final_model
+    return best_models
 
+best_models = hyperparameter_optimization(X, y)
 
+####################################################################################################################
+# TASK - Optuna
+
+####################################################################################################################

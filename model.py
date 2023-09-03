@@ -436,27 +436,30 @@ accuracy = 100 - np.mean(mape)
 
 print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 87.1 %.
 #----------------------------------------------------------------------------
-def base_models(X, y, scoring="neg_mean_squared_error"):
+def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
     print("Base Models....")
     regressors = [
         ("LR", LinearRegression()),
-        ("KNN", KNeighborsRegressor()),
-        ("SVC", SVR()),
-        ("CART", DecisionTreeRegressor()),
-        ("RF", RandomForestRegressor()),
+        # ("KNN", KNeighborsRegressor()),
+        # ("SVC", SVR()),
+        # ("CART", DecisionTreeRegressor()),
+        # ("RF", RandomForestRegressor()),
         ("Adaboost", AdaBoostRegressor()),
-        ("GBM", GradientBoostingRegressor()),
+        # ("GBM", GradientBoostingRegressor()),
         ("XGBoost", XGBRegressor()),
         ("LightGBM", LGBMRegressor(verbose=-1)),
         ("CatBoost", CatBoostRegressor(verbose=False))
     ]
 
     for name, regressor in regressors:
-        cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring,)
-        print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
+        cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring)
+        if scoring == 'neg_mean_squared_error':
+            print(f"{scoring}: {round(-cv_results['test_score'].mean(), 4)} ({name}) ")
+        else:
+            print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
     return
 
-base_models(X, y) #burada kaldık - hata verdi!!!
+base_models(X, y)
 
 #######################################################################
 # 4. Automated Hyperparameter Optimization

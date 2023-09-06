@@ -186,7 +186,7 @@ df.info()
 
 check_df(df[num_cols])
 
-check_df(df[cat_cols])
+# check_df(df[cat_cols])
 
 
 def cat_summary(dataframe, col_name, plot=False):
@@ -244,7 +244,7 @@ correlation_matrix(df, num_cols)
 #######################################################################
 # 2. Data Preprocessing & Feature Engineering
 #######################################################################
-df.isnull().any()
+# df.isnull().any()
 
 
 
@@ -467,20 +467,24 @@ lgbm_model.fit(X_train, y_train)
 
 lgbm_model.get_params()
 #{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 1.0, 'importance_type': 'split', 'learning_rate': 0.1, 'max_depth': -1, 'min_child_samples': 20, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 100, 'n_jobs': None, 'num_leaves': 31, 'objective': None, 'random_state': None, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbose': -1}
+y_pred = lgbm_model.predict(X_test)
 
+errors = abs(y_pred - y_test)
+mape = 100 * (errors / (y_test+0.1))
+accuracy = 100 - np.mean(mape)
 
-
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 85.8  %.
 #----------------------------------------------------------------------------
 def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
     print("Base Models....")
     regressors = [
-        ("LR", LinearRegression()),
+        # ("LR", LinearRegression()),
         # ("KNN", KNeighborsRegressor()),
         # ("SVC", SVR()),
         # ("CART", DecisionTreeRegressor()),
         # ("RF", RandomForestRegressor()),
-        ("Adaboost", AdaBoostRegressor()),
-        ("GBM", GradientBoostingRegressor()),
+        # ("Adaboost", AdaBoostRegressor()),
+        # ("GBM", GradientBoostingRegressor()),
         ("XGBoost", XGBRegressor()),
         ("LightGBM", LGBMRegressor(verbose=-1)),
         ("CatBoost", CatBoostRegressor(verbose=False))
@@ -512,7 +516,7 @@ regressors_hpo = [
     # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
 ]
 
-def hyperparameter_optimization(X, y, cv=3, scoring="r2"):
+def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
     print("Hyperparameter Optimization....")
     best_models = {}
     for name, regressor, params in regressors_hpo:
@@ -529,10 +533,9 @@ def hyperparameter_optimization(X, y, cv=3, scoring="r2"):
         best_models[name] = final_model
     return best_models
 
-best_models = hyperparameter_optimization(X, y)
+best_models = hyperparameter_optimization(X, y, scoring='r2')
 
 ####################################################################################################################
 # TASK - Optuna
 
 ####################################################################################################################
-#betul

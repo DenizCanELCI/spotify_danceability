@@ -29,7 +29,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+df_ = pd.read_csv("dataset.csv")
 
 """df_.head()
 
@@ -106,13 +106,12 @@ def check_df(dataframe, head=5):
     print(dataframe.tail(head))
     print("#################### NA #########################")
     print(dataframe.isnull().sum())
-    print("#################### Quantiles ##################")
-    print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
+    #print("#################### Quantiles ##################")
+    #print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
 
-except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
-
-# check_df(except_explicit) #DE: bende except_explicit için de hata verdi, sadece numeric değerler gönderilebilir
-
+check_df(df)
+# MP: check_df de hata aldığımız için quantile metodunu yorum satırına aldım şu an sıkıntısız kullanabiliyoruz.
+df.describe().T # MP: check_df de quantile devre dışı olduğu için burda describe ile kontrol yapıyoruz.
 
 # cat treshold değeri 10 olarak atanmış. Fakat veriseti parametre acıklamalarından da anlaşılacağı üzere key değeri 12 adet. Anahtar
 # nota kategorik olarak kullanılmalı
@@ -186,7 +185,7 @@ df.info()
 
 check_df(df[num_cols])
 
-# check_df(df[cat_cols])
+check_df(df[cat_cols])
 
 
 def cat_summary(dataframe, col_name, plot=False):
@@ -244,7 +243,7 @@ correlation_matrix(df, num_cols)
 #######################################################################
 # 2. Data Preprocessing & Feature Engineering
 #######################################################################
-# df.isnull().any()
+df.isnull().any()
 
 
 
@@ -266,22 +265,22 @@ def replace_with_thresholds(dataframe, variable):
 def check_outlier(dataframe, col_name):
     low_limit, up_limit = outlier_thresholds(dataframe, col_name)
     if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
+        print(f"{col_name} = True")
         return True
     else:
+        print(f"{col_name} = False")
         return False
 
-# num_cols.remove('Unnamed: 0')
-num_cols
+# MP: check_outlier fonksiyonunda değişiklik yaptım. alttaki for döngüsü ile kullanılabilir.
 
-for col in num_cols:
-    check_outlier(df, col)
 
-df[num_cols]
+
+
 
 ####################################################################################################################
 #TASK - Outlier tespiti ve kaldirilmasi
 for col in num_cols:
-    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
+    check_outlier(df, col)
 
 # Outlier'ları iyileştiriyoruz
 for col in num_cols:
@@ -290,7 +289,28 @@ for col in num_cols:
 
 # Tekrar kontrol ediyoruz outlier durumlarını
 for col in num_cols:
-    print(f'col = {col}\tis there outlier? =  {check_outlier(df, col)}') #String açıklaması değiştirildi! DE
+    check_outlier(df, col)
+
+df.head()
+
+# MP: Değişkenleri 5 eşit parçaya bölerek yeni değişkenler oluşturdum.Neden 5 bende bilmiyorum.
+df["energy_2"] = pd.qcut(df["energy"], q=5)
+df["loudness_2"] = pd.qcut(df["loudness"], q=5)
+df["speechiness_2"] = pd.qcut(df["speechiness"], q=5)
+df["acousticness_2"] = pd.qcut(df["acousticness"], q=5)
+df["instrumentalness_2"] = pd.qcut(df["instrumentalness"], q=5, duplicates="drop")
+df["liveness_2"] = pd.qcut(df["liveness"], q=5)
+df["valence_2"] = pd.qcut(df["valence"], q=5)
+df["tempo_2"] = pd.qcut(df["tempo"], q=5)
+
+# MP: Yeni değişkenlere encoding yapıyoruz
+df = pd.get_dummies(df, drop_first=True)
+
+# MP: Yeni değişkenler oluştuğu için tekrar grab_col yapmamız lazım.
+cat_cols, num_cols, cat_but_car = grab_col_names(df)
+
+
+
 #outlier kalmadı!
 ####################################################################################################################
 
@@ -426,6 +446,7 @@ lrmodel.fit(X_train, y_train)
 
 df[outcome]
 y_pred = lrmodel.predict(X_test)
+from sklearn.model_selection import cross_validate, GridSearchCV
 
 # cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
 mape = MAPE(y_test, y_pred)
@@ -433,8 +454,7 @@ mape = MAPE(y_test, y_pred)
 # print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
 
 # accuracy = lrmodel.score(X_test, y_test)
-accuracy_lr = (100 - mape)/100.
-print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 0.7950883633864175
+accuracy_lr = (100 - mape)/100. # Accuracy = 0.7950883633864175
 #----------------------------------------------------------------------------
 rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
 rfr_model.fit(X_train, y_train)
@@ -446,7 +466,7 @@ errors = abs(y_pred - y_test)
 mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
 accuracy = 100 - mape
 
-print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 78.85 %.
+print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 79.71 %.
 #----------------------------------------------------------------------------
 
 xgbr_model = XGBRegressor()
@@ -460,48 +480,32 @@ errors = abs(y_pred - y_test)
 mape = 100 * (errors / (y_test+0.1))
 accuracy = 100 - np.mean(mape)
 
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.76 %.
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 87.1 %.
 #----------------------------------------------------------------------------
 lgbm_model = LGBMRegressor(verbose=-1)
 lgbm_model.fit(X_train, y_train)
 
 lgbm_model.get_params()
 #{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 1.0, 'importance_type': 'split', 'learning_rate': 0.1, 'max_depth': -1, 'min_child_samples': 20, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 100, 'n_jobs': None, 'num_leaves': 31, 'objective': None, 'random_state': None, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbose': -1}
-y_pred = lgbm_model.predict(X_test)
 
-errors = abs(y_pred - y_test)
-mape = 100 * (errors / (y_test+0.1))
-accuracy = 100 - np.mean(mape)
 
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 85.69 %.
-#----------------------------------------------------------------------------
-ctboost_model = CatBoostRegressor(verbose=False)
-ctboost_model.fit(X_train, y_train)
 
-ctboost_model.get_all_params()
-
-y_pred = ctboost_model.predict(X_test)
-
-errors = abs(y_pred - y_test)
-mape = 100 * (errors / (y_test+0.1))
-accuracy = 100 - np.mean(mape)
-
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.74 %.
 #----------------------------------------------------------------------------
 def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
     print("Base Models....")
     regressors = [
         ("LR", LinearRegression()),
-        ("KNN", KNeighborsRegressor()),
+        # ("KNN", KNeighborsRegressor()),
         # ("SVC", SVR()),
         # ("CART", DecisionTreeRegressor()),
         # ("RF", RandomForestRegressor()),
-        # ("Adaboost", AdaBoostRegressor()),
-        # ("GBM", GradientBoostingRegressor()),
+        ("Adaboost", AdaBoostRegressor()),
+        ("GBM", GradientBoostingRegressor()),
         ("XGBoost", XGBRegressor()),
         ("LightGBM", LGBMRegressor(verbose=-1)),
         ("CatBoost", CatBoostRegressor(verbose=False))
     ]
+
     for name, regressor in regressors:
         cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring)
         if scoring == 'neg_mean_squared_error':
@@ -509,20 +513,11 @@ def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
         else:
             print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
     return
-"""
-Base Models....
-r2: 0.6198 (XGBoost) 
-r2: 0.5998 (LightGBM) 
-r2: 0.6285 (CatBoost) 
-"""
 
 base_models(X, y)
-# Base Models....
-# r2: 0.32 (LR)
-# r2: -0.0882 (KNN)
-# r2: 0.6198 (XGBoost)
-# r2: 0.5998 (LightGBM)
-# r2: 0.6285 (CatBoost)
+
+df_.info()
+
 #######################################################################
 # 4. Automated Hyperparameter Optimization
 #######################################################################
@@ -531,21 +526,15 @@ cart_params = {"max_depth": range(1, 20),
                "min_samples_split": range(2, 30)}
 
 lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
-                   'max_depth':range(4,16,2),
+                   'max_depth':range(4,16),
                    'n_estimators':range(100,300,50)}
-
-ctboost_model.get_all_params()
-ctboost_params = {'eval_metric':['RMSE','MAPE'],
-                  'iterations':range(500,1500,500),
-                  'depth':[4,6,8,12]
-}
 regressors_hpo = [
-    ("XGBoost", XGBRegressor(), xgb_params)
-    # ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
+    # ("XGBoost", XGBRegressor(), xgb_params),
+    ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
     # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
 ]
 
-def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
+def hyperparameter_optimization(X, y, cv=3, scoring="r2"):
     print("Hyperparameter Optimization....")
     best_models = {}
     for name, regressor, params in regressors_hpo:
@@ -562,9 +551,10 @@ def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r
         best_models[name] = final_model
     return best_models
 
-best_models = hyperparameter_optimization(X, y, scoring='neg_mean_squared_error')
+best_models = hyperparameter_optimization(X, y)
 
 ####################################################################################################################
-# TASK - Optuna (Opsiyonel)
+# TASK - Optuna
 
-###############################################################################################################
+####################################################################################################################
+#betul

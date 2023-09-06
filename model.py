@@ -426,7 +426,6 @@ lrmodel.fit(X_train, y_train)
 
 df[outcome]
 y_pred = lrmodel.predict(X_test)
-from sklearn.model_selection import cross_validate, GridSearchCV
 
 # cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
 mape = MAPE(y_test, y_pred)
@@ -434,7 +433,8 @@ mape = MAPE(y_test, y_pred)
 # print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
 
 # accuracy = lrmodel.score(X_test, y_test)
-accuracy_lr = (100 - mape)/100. # Accuracy = 0.7950883633864175
+accuracy_lr = (100 - mape)/100.
+print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 0.7950883633864175
 #----------------------------------------------------------------------------
 rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
 rfr_model.fit(X_train, y_train)
@@ -446,7 +446,7 @@ errors = abs(y_pred - y_test)
 mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
 accuracy = 100 - mape
 
-print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 79.71 %.
+print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 78.85 %.
 #----------------------------------------------------------------------------
 
 xgbr_model = XGBRegressor()
@@ -460,7 +460,7 @@ errors = abs(y_pred - y_test)
 mape = 100 * (errors / (y_test+0.1))
 accuracy = 100 - np.mean(mape)
 
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 87.1 %.
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.76 %.
 #----------------------------------------------------------------------------
 lgbm_model = LGBMRegressor(verbose=-1)
 lgbm_model.fit(X_train, y_train)
@@ -473,13 +473,26 @@ errors = abs(y_pred - y_test)
 mape = 100 * (errors / (y_test+0.1))
 accuracy = 100 - np.mean(mape)
 
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 85.8  %.
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 85.69 %.
+#----------------------------------------------------------------------------
+ctboost_model = CatBoostRegressor(verbose=False)
+ctboost_model.fit(X_train, y_train)
+
+ctboost_model.get_all_params()
+
+y_pred = ctboost_model.predict(X_test)
+
+errors = abs(y_pred - y_test)
+mape = 100 * (errors / (y_test+0.1))
+accuracy = 100 - np.mean(mape)
+
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.74 %.
 #----------------------------------------------------------------------------
 def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
     print("Base Models....")
     regressors = [
-        # ("LR", LinearRegression()),
-        # ("KNN", KNeighborsRegressor()),
+        ("LR", LinearRegression()),
+        ("KNN", KNeighborsRegressor()),
         # ("SVC", SVR()),
         # ("CART", DecisionTreeRegressor()),
         # ("RF", RandomForestRegressor()),
@@ -489,7 +502,6 @@ def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
         ("LightGBM", LGBMRegressor(verbose=-1)),
         ("CatBoost", CatBoostRegressor(verbose=False))
     ]
-
     for name, regressor in regressors:
         cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring)
         if scoring == 'neg_mean_squared_error':
@@ -497,9 +509,20 @@ def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
         else:
             print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
     return
+"""
+Base Models....
+r2: 0.6198 (XGBoost) 
+r2: 0.5998 (LightGBM) 
+r2: 0.6285 (CatBoost) 
+"""
 
 base_models(X, y)
-
+# Base Models....
+# r2: 0.32 (LR)
+# r2: -0.0882 (KNN)
+# r2: 0.6198 (XGBoost)
+# r2: 0.5998 (LightGBM)
+# r2: 0.6285 (CatBoost)
 #######################################################################
 # 4. Automated Hyperparameter Optimization
 #######################################################################
@@ -510,6 +533,11 @@ cart_params = {"max_depth": range(1, 20),
 lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
                    'max_depth':range(4,16),
                    'n_estimators':range(100,300,50)}
+ctboost_model.get_all_params()
+ctboost_params = {'eval_metric':['RMSE','MAPE'],
+                  'iterations':range(500,1500,500),
+                  'depth':[4,6,8,12]
+}
 regressors_hpo = [
     # ("XGBoost", XGBRegressor(), xgb_params),
     ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
@@ -533,9 +561,9 @@ def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r
         best_models[name] = final_model
     return best_models
 
-best_models = hyperparameter_optimization(X, y, scoring='r2')
+best_models = hyperparameter_optimization(X, y, scoring='neg_mean_squared_error')
 
 ####################################################################################################################
-# TASK - Optuna
+# TASK - Optuna (Opsiyonel)
 
 ####################################################################################################################

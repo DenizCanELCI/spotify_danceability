@@ -290,7 +290,7 @@ for col in num_cols:
 
 # Tekrar kontrol ediyoruz outlier durumlarını
 for col in num_cols:
-    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
+    print(f'col = {col}\tis there outlier? =  {check_outlier(df, col)}') #String açıklaması değiştirildi! DE
 #outlier kalmadı!
 ####################################################################################################################
 
@@ -531,16 +531,17 @@ cart_params = {"max_depth": range(1, 20),
                "min_samples_split": range(2, 30)}
 
 lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
-                   'max_depth':range(4,16),
+                   'max_depth':range(4,16,2),
                    'n_estimators':range(100,300,50)}
+
 ctboost_model.get_all_params()
 ctboost_params = {'eval_metric':['RMSE','MAPE'],
                   'iterations':range(500,1500,500),
                   'depth':[4,6,8,12]
 }
 regressors_hpo = [
-    # ("XGBoost", XGBRegressor(), xgb_params),
-    ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
+    ("XGBoost", XGBRegressor(), xgb_params)
+    # ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
     # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
 ]
 

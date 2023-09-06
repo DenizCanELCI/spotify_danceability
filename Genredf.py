@@ -15,3 +15,12 @@ for artist, genres in dict.items():
 
 
 df = pd.DataFrame(data_list, columns=['artist', 'genres'])
+
+#DE
+top_level_genres = ['rock','rap','pop','punk','r&b','indie','funk','classical'
+        ,'techno','hip hop','dance','alternative','gospel','house','chill','lo-fi','electronic','jazz'
+        ,'blues','folk','metal','country','edm','reggae','salsa','arabesk']
+
+top_level_genres = set(top_level_genres)
+
+len(top_level_genres)

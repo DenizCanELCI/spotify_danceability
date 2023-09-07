@@ -365,7 +365,7 @@ cat_cols, num_cols, cat_but_car = grab_col_names(df)
 
 df.head()
 
-df[cat_cols] # 'explicit', 'mode', 'time_signature'
+df[cat_cols] # 'explicit', 'mode', 'time_signature', 'key'
 df['time_signature'].unique() # ordinality var! Bkz açıklama docstring'i.
 
 temp_df = df.copy()

@@ -548,9 +548,9 @@ ctboost_params = {'eval_metric':['RMSE','MAPE'],
                   'depth':[4,6,8,12]
 }
 regressors_hpo = [
-    # ("XGBoost", XGBRegressor(), xgb_params),
-    ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
-    # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
+    # ("XGBoost", XGBRegressor(), xgb_params)
+    # ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
+    ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
 ]
 
 def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
@@ -575,6 +575,8 @@ best_models = hyperparameter_optimization(X, y, scoring='r2')
 # r2 (Before): 0.6007
 # r2 (After): 0.6258
 # LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 250}
+
+
 ###############################################################################################################
 # TASK - Optuna (Opsiyonel)
 

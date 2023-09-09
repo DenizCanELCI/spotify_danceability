@@ -29,7 +29,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv("dataset.csv")
+df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
 """df_.head()
 
@@ -60,7 +60,7 @@ df_ = df_.drop(65900, axis=0)
 
 
 df_.describe().T"""
-
+df_.isna().sum()
 
 #######################################################################
 # 1. Exploratory Data Analysis
@@ -85,6 +85,33 @@ df = df_.copy()
 # df.iloc[40531]
 
 #-----------------------------------------------*************************************************
+# df = df.drop_duplicates(subset=['track_id'],) #df.columns
+# df_n = df.copy()
+# unique_rows = df_n.drop_duplicates(subset=['track_id','track_name','album_name','artists'])
+# duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
+# df_n.drop(duplicated_rows.index, inplace=True)
+# duplicated_rows = df_n[df_n.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
+# df_n.drop('track_id',axis=1,inplace=True)
+# same_rows = df_n[df_n.duplicated()]
+duplicated_rows = df[df.duplicated(subset=['track_id'])]
+df = df.drop(duplicated_rows.index)
+
+duplicated_rows = df[df.duplicated(subset=['track_name'])]
+df = df.drop(duplicated_rows.index)
+
+duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
+df = df.drop(duplicated_rows.index)
+
+duplicated_rows = df[df.duplicated(subset=['track_id', "track_name"])]
+
+duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name"])]
+df = df.drop(duplicated_rows.index)
+
+duplicated_rows = df[df.duplicated(subset=['popularity', 'duration_ms', "explicit", "danceability", "energy", "key", "loudness",
+                                           "mode", "speechiness", "acousticness", "instrumentalness", "liveness",
+                                           "valence", "tempo", "time_signature"])]
+df = df.drop(duplicated_rows.index)
+
 
 df = df.drop("Unnamed: 0", axis=1)
 
@@ -404,6 +431,11 @@ from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientB
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
+df.isna().sum()
+nan_rows = df[df.isna().any(axis=1)]
+
+df.drop(65900, inplace=True)
+df[num_cols] = df[num_cols].astype(float)
 
 from sklearn.preprocessing import StandardScaler
 # Standartlaştırma
@@ -424,12 +456,13 @@ def MAPE(Y_actual,Y_Predicted):
     mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
     return mape
 
-lrmodel = LinearRegression()
+lrmodel = LinearRegression(n_jobs=-1)
 
 from sklearn.model_selection import train_test_split
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
+# - - - - - - - - - - - - -
 lrmodel.fit(X_train, y_train)
 
 df[outcome]
@@ -541,19 +574,27 @@ base_models(X, y)
 lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
                    'max_depth':[4,6,8],
                    'n_estimators':[100,150,250]}
-ctboost_model.get_all_params()
+# ctboost_model.get_all_params()
 
 ctboost_params = {'eval_metric':['RMSE','MAPE'],
                   'iterations':range(500,1500,500),
                   'depth':[4,6,8,12]
 }
+rfr_params = {'max_depth':range(5,10),
+             'n_estimators': range(150,250,25)}
+
+xgboost_params = {"learning_rate": [ 0.1],
+                  "max_depth": [10,12,14],
+                  "n_estimators": [250,300]}
 regressors_hpo = [
-    # ("XGBoost", XGBRegressor(), xgb_params)
+    ("XGBoost", XGBRegressor(), xgboost_params)
     # ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
-    ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
+    # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
+    # ("RandomForest", RandomForestRegressor(), rfr_params)
 ]
 
-def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
+
+def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
     print("Hyperparameter Optimization....")
     best_models = {}
     for name, regressor, params in regressors_hpo:
@@ -565,18 +606,58 @@ def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r
         final_model = regressor.set_params(**gs_best.best_params_)
 
         cv_results = cross_validate(final_model, X, y, cv=cv, scoring=scoring)
-        print(f"{scoring} (After): {round(cv_results['test_score'].mean(), 4)}")
+        if scoring == 'neg_mean_squared_error':
+            print(f"{scoring} (After): {-round(cv_results['test_score'].mean(), 4)}")
+        else:
+            print(f"{scoring} (After): {round(cv_results['test_score'].mean(), 4)}")
+
         print(f"{name} best params: {gs_best.best_params_}", end="\n\n")
         best_models[name] = final_model
     return best_models
 
 best_models = hyperparameter_optimization(X, y, scoring='r2')
-########## LightGBM ##########
+
+# best_xgb_model = XGBRegressor('learning_rate'=0.1,'max_depth'=10,'n_estimators'=250)
+best_xgb_model = best_models['XGBoost']
+
+best_xgb_model.fit(X_train,y_train)
+y_pred = best_xgb_model.predict(X_test)
+
+errors = abs(y_pred - y_test)
+mape = 100 * (errors / (y_test+0.001))
+
+accuracy = 100 - np.mean(mape)
+
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.98 %.
+
+from sklearn.metrics import mean_squared_error
+mse = mean_squared_error(y_test, y_pred)
+
+print("Mean Squared Error:", mse)
+
+mape = MAPE(y_test, y_pred)
+
+rmse = np.mean(np.sqrt(-cross_validate(best_xgb_model, X, y, cv=5, scoring="neg_mean_squared_error")))
+#
+
+accuracy_lr = (100 - mape)
+print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 79.71 %.
+
+
+ ########## LightGBM ##########
 # r2 (Before): 0.6007
 # r2 (After): 0.6258
 # LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 250}
 
+########## XGBoost ##########
+# r2 (Before): 0.6249
+# r2 (After): 0.672
+# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 250}
 
+########## XGBoost ##########
+# neg_mean_squared_error (Before): -0.0112
+# neg_mean_squared_error (After): -0.0097
+# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 12, 'n_estimators': 300}
 ###############################################################################################################
 # TASK - Optuna (Opsiyonel)
 

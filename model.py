@@ -622,25 +622,18 @@ errors = abs(y_pred - y_test)
 mape = 100 * (errors / (y_test+0.001))
 
 accuracy = 100 - np.mean(mape)
-
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.98 %.
+print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 77.97 %.
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 mse = mean_squared_error(y_test, y_pred, squared=False)
 
 print("Mean Squared Error:", mse)
+# Mean Squared Error: 0.10400572469934198
 
 mae = mean_absolute_error(y_test, y_pred)
 print('Mean Absoulte Error:',mae)
+# Mean Absoulte Error: 0.08132177375680566
 
-
-mape = MAPE(y_test, y_pred)
-
-rmse = np.mean(np.sqrt(-cross_validate(best_xgb_model, X, y, cv=5, scoring="neg_mean_squared_error")))
-#
-
-accuracy_lr = (100 - mape)
-print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 79.71 %.
 
 
  ########## LightGBM ##########

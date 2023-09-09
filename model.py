@@ -29,7 +29,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv("dataset.csv")
+df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
 """df_.head()
 
@@ -56,10 +56,9 @@ df[df["artists"].isnull()]
 65900  138.391               4       k-pop  
 
 
-df_ = df_.drop(65900, axis=0)
-
-
 df_.describe().T"""
+
+df_ = df_.drop(65900, axis=0)
 
 
 #######################################################################
@@ -404,11 +403,16 @@ from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientB
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
-
+df.isna().sum()
 from sklearn.preprocessing import StandardScaler
 # Standartlaştırma
 X_scaled = StandardScaler().fit_transform(df[num_cols])
 df[num_cols] = pd.DataFrame(X_scaled, columns=df[num_cols].columns)  # İsimlendirmeleri Düzeltiyoruz
+
+nan_rows = df[df.isna().any(axis=1)].index #Nan satırı buluyoruz
+df.iloc[nan_rows-1]
+df.drop(nan_rows, inplace=True)
+df.isna().sum()
 
 y = df[outcome]
 X = df.copy()
@@ -537,23 +541,24 @@ base_models(X, y)
 
 # cart_params = {"max_depth": range(1, 20),
 #                "min_samples_split": range(2, 30)}
-
+xgboost_params = {"learning_rate": [0.1],
+                  "max_depth": [10,12,14],
+                  "n_estimators": [100,150]}
 lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
                    'max_depth':[4,6,8],
                    'n_estimators':[100,150,250]}
-ctboost_model.get_all_params()
 
 ctboost_params = {'eval_metric':['RMSE','MAPE'],
                   'iterations':range(500,1500,500),
                   'depth':[4,6,8,12]
 }
 regressors_hpo = [
-    # ("XGBoost", XGBRegressor(), xgb_params)
+    ("XGBoost", XGBRegressor(), xgboost_params)
     # ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
-    ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
+    # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
 ]
 
-def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
+def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
     print("Hyperparameter Optimization....")
     best_models = {}
     for name, regressor, params in regressors_hpo:
@@ -565,17 +570,34 @@ def hyperparameter_optimization(X, y, cv=3, scoring="r2"): #    >>> scores =>('r
         final_model = regressor.set_params(**gs_best.best_params_)
 
         cv_results = cross_validate(final_model, X, y, cv=cv, scoring=scoring)
-        print(f"{scoring} (After): {round(cv_results['test_score'].mean(), 4)}")
+        if scoring == 'neg_mean_squared_error':
+            print(f"{scoring} (After): {-round(cv_results['test_score'].mean(), 4)}")
+        else:
+            print(f"{scoring} (After): {round(cv_results['test_score'].mean(), 4)}")
+
         print(f"{name} best params: {gs_best.best_params_}", end="\n\n")
         best_models[name] = final_model
     return best_models
 
-best_models = hyperparameter_optimization(X, y, scoring='r2')
-########## LightGBM ##########
+best_models = hyperparameter_optimization(X, y, scoring='neg_mean_squared_error')
+
+best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=250)
+best_xgb_model = best_models['XGBoost']
+
+ ########## LightGBM ##########
 # r2 (Before): 0.6007
 # r2 (After): 0.6258
 # LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 250}
 
+########## XGBoost ##########
+# r2 (Before): 0.6249
+# r2 (After): 0.672
+# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 250}
+
+########## XGBoost ##########
+# neg_mean_squared_error (Before): -0.0112
+# neg_mean_squared_error (After): -0.0097
+# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 12, 'n_estimators': 300}
 
 ###############################################################################################################
 # TASK - Optuna (Opsiyonel)

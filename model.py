@@ -61,14 +61,14 @@ df_ = df_.drop(65900, axis=0)
 
 df_.describe().T"""
 
-df_ = df_.drop(65900, axis=0)
-
 
 #######################################################################
 # 1. Exploratory Data Analysis
 #######################################################################
 
 df = df_.copy()
+
+df = df.drop(65900, axis=0)
 #-----------------------------------------------*************************************************
 # TASK - Levitas kaç şarkıda geçiyor bulma
 # lst = []
@@ -87,14 +87,7 @@ df = df_.copy()
 # df.iloc[40531]
 
 #-----------------------------------------------*************************************************
-# df = df.drop_duplicates(subset=['track_id'],) #df.columns
-# df_n = df.copy()
-# unique_rows = df_n.drop_duplicates(subset=['track_id','track_name','album_name','artists'])
-# duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
-# df_n.drop(duplicated_rows.index, inplace=True)
-# duplicated_rows = df_n[df_n.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
-# df_n.drop('track_id',axis=1,inplace=True)
-# same_rows = df_n[df_n.duplicated()]
+
 duplicated_rows = df[df.duplicated(subset=['track_id'])]
 df = df.drop(duplicated_rows.index)
 
@@ -138,7 +131,7 @@ def check_df(dataframe, head=5):
     print("#################### Quantiles ##################")
     print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
 
-except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
+# except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
 
 # check_df(except_explicit) #DE: bende except_explicit için de hata verdi, sadece numeric değerler gönderilebilir
 
@@ -201,15 +194,16 @@ def grab_col_names(dataframe, cat_th=13, car_th=20):
 cat_cols, num_cols, cat_but_car = grab_col_names(df)
 
 num_cols.remove(outcome)
-df[cat_cols]
-
-df[num_cols]
-
-df[cat_but_car]
-
-df['track_genre'].nunique()
-
-df['track_genre'].unique()
+#
+# df[cat_cols]
+#
+# df[num_cols]
+#
+# df[cat_but_car]
+#
+# df['track_genre'].nunique()
+#
+# df['track_genre'].unique()
 
 df.info()
 
@@ -218,65 +212,62 @@ check_df(df[num_cols])
 # check_df(df[cat_cols])
 
 
-def cat_summary(dataframe, col_name, plot=False):
-    print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
-                        "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
-    print("##########################################")
-    if plot:
-        sns.countplot(x=dataframe[col_name], data=dataframe)
-        plt.show()
-
-df[cat_cols]
-
-for col in cat_cols:
-    cat_summary(df, col, plot=False)
-
-
-def num_summary(dataframe, numerical_col, plot=False):
-    quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
-    print(dataframe[numerical_col].describe(quantiles).T)
-
-    if plot:
-        dataframe[numerical_col].hist(bins=20)
-        plt.xlabel(numerical_col)
-        plt.title(numerical_col)
-        plt.show(block=True)
-
-df[num_cols]
-
-for col in num_cols:
-    num_summary(df, col)
-
-
+# def cat_summary(dataframe, col_name, plot=False):
+#     print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
+#                         "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
+#     print("##########################################")
+#     if plot:
+#         sns.countplot(x=dataframe[col_name], data=dataframe)
+#         plt.show()
+#
+# df[cat_cols]
+#
+# for col in cat_cols:
+#     cat_summary(df, col, plot=False)
+#
+#
+# def num_summary(dataframe, numerical_col, plot=False):
+#     quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
+#     print(dataframe[numerical_col].describe(quantiles).T)
+#
+#     if plot:
+#         dataframe[numerical_col].hist(bins=20)
+#         plt.xlabel(numerical_col)
+#         plt.title(numerical_col)
+#         plt.show(block=True)
+#
+# df[num_cols]
+#
+# for col in num_cols:
+#     num_summary(df, col)
+#
 # def target_summary_with_num(dataframe, target, numerical_col):
 #     print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
 #
 # for col in num_cols:
 #     target_summary_with_num(df, outcome, col)
+#
+# def target_summary_with_cat(dataframe, target, categorical_col):
+#     print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
+#
+# for col in cat_cols:
+#     target_summary_with_cat(df, outcome, col)
 
-def target_summary_with_cat(dataframe, target, categorical_col):
-    print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
-
-for col in cat_cols:
-    target_summary_with_cat(df, outcome, col)
-
-def correlation_matrix(df, cols):
-    fig = plt.gcf()
-    fig.set_size_inches(10, 8)
-    plt.xticks(fontsize=10)
-    plt.yticks(fontsize=10)
-    fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={"size": 12}, linecolor="w", cmap="RdBu")
-    plt.show(block=True)
-
-correlation_matrix(df, num_cols)
+# def correlation_matrix(df, cols):
+#     fig = plt.gcf()
+#     fig.set_size_inches(10, 8)
+#     plt.xticks(fontsize=10)
+#     plt.yticks(fontsize=10)
+#     fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={"size": 12}, linecolor="w", cmap="RdBu")
+#     plt.show(block=True)
+#
+# correlation_matrix(df, num_cols)
 
 #######################################################################
 # 2. Data Preprocessing & Feature Engineering
 #######################################################################
 # df.isnull().any()
-
-
-
+df["explicit"] = df["explicit"].astype(int)
 def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
     quartile1 = dataframe[col_name].quantile(q1)
     quartile3 = dataframe[col_name].quantile(q3)
@@ -305,7 +296,7 @@ num_cols
 for col in num_cols:
     check_outlier(df, col)
 
-df[num_cols]
+# df[num_cols]
 
 ####################################################################################################################
 #TASK - Outlier tespiti ve kaldirilmasi
@@ -323,9 +314,7 @@ for col in num_cols:
 #outlier kalmadı!
 ####################################################################################################################
 
-
 ####################################################################################################################
-
 #TASK - Lof ile outlier tespiti
 # from sklearn.neighbors import LocalOutlierFactor
 # clf = LocalOutlierFactor(n_neighbors=20)
@@ -370,7 +359,7 @@ for col in num_cols:
 
 #
 ####################################################################################################################
-#TASK - Encoding
+#TASK - Encoding & Features
 
 df.head()
 
@@ -396,9 +385,9 @@ df["is4/4"] = 1
 
 df.loc[df['time_signature'].isin([3,5,6,7]), 'is4/4'] = 0
 
-df.columns
-cat_but_car
-df[cat_but_car]
+# df.columns
+# cat_but_car
+# df[cat_but_car]
 model_cols = [col for col in df.columns if col not in cat_but_car]
 df[model_cols]
 
@@ -434,20 +423,19 @@ from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
 df.isna().sum()
-nan_rows = df[df.isna().any(axis=1)]
-
-df.drop(65900, inplace=True)
+# nan_rows = df[df.isna().any(axis=1)]
 df[num_cols] = df[num_cols].astype(float)
+
 
 from sklearn.preprocessing import StandardScaler
 # Standartlaştırma
 X_scaled = StandardScaler().fit_transform(df[num_cols])
-df[num_cols] = pd.DataFrame(X_scaled, columns=df[num_cols].columns)  # İsimlendirmeleri Düzeltiyoruz
+temp_df = df.copy()
+# temp_df[num_cols] = pd.DataFrame(X_scaled, columns=temp_df[num_cols].columns)
+temp_df[num_cols] = pd.DataFrame(X_scaled, columns=num_cols, index=df[num_cols].index)
+temp_df.isna().sum()
+df = temp_df.copy()
 
-nan_rows = df[df.isna().any(axis=1)].index #Nan satırı buluyoruz
-df.iloc[nan_rows-1]
-df.drop(nan_rows, inplace=True)
-df.isna().sum()
 
 y = df[outcome]
 X = df.copy()
@@ -457,7 +445,6 @@ for col in cat_but_car:
 
 # cols = df.columns[df.eq('Gen Hoshino').any()]
 
-df['track_id']
 #----------------------------------------------------------------------------
 def MAPE(Y_actual,Y_Predicted):
     mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
@@ -625,7 +612,7 @@ def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r
 
 best_models = hyperparameter_optimization(X, y, scoring='r2')
 
-# best_xgb_model = XGBRegressor('learning_rate'=0.1,'max_depth'=10,'n_estimators'=250)
+best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=250)
 best_xgb_model = best_models['XGBoost']
 
 best_xgb_model.fit(X_train,y_train)
@@ -642,6 +629,7 @@ from sklearn.metrics import mean_squared_error
 mse = mean_squared_error(y_test, y_pred)
 
 print("Mean Squared Error:", mse)
+
 
 mape = MAPE(y_test, y_pred)
 

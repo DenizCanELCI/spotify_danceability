@@ -432,7 +432,7 @@ lrmodel = LinearRegression()
 
 from sklearn.model_selection import train_test_split
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 lrmodel.fit(X_train, y_train)
 
@@ -583,6 +583,8 @@ best_models = hyperparameter_optimization(X, y, scoring='neg_mean_squared_error'
 
 best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=250)
 best_xgb_model = best_models['XGBoost']
+
+
 
  ########## LightGBM ##########
 # r2 (Before): 0.6007

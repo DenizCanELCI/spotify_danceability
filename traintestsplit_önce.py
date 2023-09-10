@@ -68,7 +68,6 @@ df_.describe().T
 
 df = df_.copy()
 
-df = df.head(20000).copy()
 #-----------------------------------------------*************************************************
 # TASK - Levitas kaç şarkıda geçiyor bulma
 # lst = []
@@ -464,13 +463,11 @@ from catboost import CatBoostRegressor
 from sklearn.preprocessing import StandardScaler
 # Standartlaştırma
 X_scaled = StandardScaler().fit_transform(X_train[num_cols])
-X_train[num_cols] = pd.DataFrame(X_scaled, columns=X_train[num_cols].columns)
-loud = X_train['loudness']
-df.iloc[17025]
+X_train[num_cols] = pd.DataFrame(X_scaled, columns=X_train[num_cols].columns, index=df[num_cols].index)
 
 X_scaled = StandardScaler().fit_transform(X_test[num_cols])
-X_test[num_cols] = pd.DataFrame(X_scaled, columns=X_test[num_cols].columns)
-X_train.isna().sum()
+X_test[num_cols] = pd.DataFrame(X_scaled, columns=X_test[num_cols].columns, index=df[num_cols].index)
+X_test.isna().sum()
 # y = df[outcome]
 # X = df.copy()
 # X.drop([outcome], axis=1, inplace=True)
@@ -495,7 +492,6 @@ def MAPE(Y_actual,Y_Predicted):
 # - - - - - - - - - - - - -
 # lrmodel.fit(X_train, y_train)
 
-df[outcome]
 # y_pred = lrmodel.predict(X_test)
 
 # cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
@@ -646,57 +642,33 @@ def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r
         best_models[name] = final_model
     return best_models
 
-X_train.isna().sum()
-X_test.isna().sum()
 best_models = hyperparameter_optimization(X_train, y_train, scoring='neg_mean_squared_error')
-X_train.isna().sum()
-# best_xgb_model = XGBRegressor('learning_rate'=0.1,'max_depth'=10,'n_estimators'=250)
-best_xgb_model = best_models['XGBoost']
+
+best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=250)
+# best_xgb_model = best_models['XGBoost']
 
 best_xgb_model.fit(X_train,y_train)
 y_pred = best_xgb_model.predict(X_test)
-df.describe().T
-errors = abs(y_pred - y_test)
-mape = 100 * (errors / (y_test+0.001))
 
-accuracy = 100 - np.mean(mape)
-
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.98 %.
-
-from sklearn.metrics import mean_squared_error
-mse = mean_squared_error(y_test, y_pred)
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+mse = mean_squared_error(y_test, y_pred, squared=False)
 
 print("Mean Squared Error:", mse)
-
-mape = MAPE(y_test, y_pred)
-
-rmse = np.mean(np.sqrt(-cross_validate(best_xgb_model, X, y, cv=5, scoring="neg_mean_squared_error")))
-#
-X_train.loc[5]
-accuracy_lr = (100 - mape)
-print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 79.71 %.
+mae = mean_absolute_error(y_test, y_pred)
+print('Mean Absoulte Error:',mae)
+# Mean Squared Error: 0.1039321529413954
 
 from sklearn.metrics import r2_score
 
 r2 = r2_score(y_test, y_pred)
 print("R2 skoru:", r2)
+# R2 skoru: 0.6582296439086228
 
-def mape(y_test, pred):
-    y_test, pred = np.array(y_test), np.array(pred)
-    mape = np.mean(np.abs((y_test - pred) / y_test))
-    return mape
+# errors = abs(y_pred - y_test)
+# mape = 100 * (errors / (y_test+0.001))
+# accuracy = 100 - np.mean(mape)
+# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.98 %.
 
-mape_Score = mape(y_test, y_pred)
-
-y_pred.shape
-
-y_test.drop((y_test[y_test == 0.]).index, inplace=True)
-type(y_test)
-y_pred.drop([101041, 101061,  45729, 101616, 101646, 101984, 101377, 101577, 101447,
-       101381, 101776, 101533, 101631, 101985, 101633, 101569,   4664, 101894,
-       101933, 101598, 101490, 101340, 101515, 101534, 101841, 101743, 101949,
-       101979, 101825, 101335, 101440, 101239, 101416], inplace=True)
-y_pred.shape
  ########## LightGBM ##########
 # r2 (Before): 0.6007
 # r2 (After): 0.6258

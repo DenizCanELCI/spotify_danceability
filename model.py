@@ -621,7 +621,8 @@ best_models = hyperparameter_optimization(X_train, y_train, scoring='neg_mean_sq
 # r2 (Before): 0.641
 # r2 (After): 0.6548
 # XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
-# neg_mean_squared_error (Before): -0.011
+########## XGBoost ##########
+# neg_mean_squared_error (Before):  0.10488088481701516
 # neg_mean_squared_error (After): 0.10488088481701516
 # XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
 
@@ -646,7 +647,6 @@ print("Mean Squared Error:", mse)
 mae = mean_absolute_error(y_test, y_pred)
 print('Mean Absoulte Error:',mae)
 # Mean Absoulte Error: 0.08132177375680566
-
 
 
  ########## LightGBM ##########

@@ -98,6 +98,7 @@ duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name", 
 df = df.drop(duplicated_rows.index)
 
 duplicated_rows = df[df.duplicated(subset=['track_id', "track_name"])]
+df = df.drop(duplicated_rows.index)
 
 duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name"])]
 df = df.drop(duplicated_rows.index)
@@ -546,12 +547,13 @@ def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
     return
 """
 Base Models....
-r2: 0.6198 (XGBoost) 
-r2: 0.5998 (LightGBM) 
-r2: 0.6285 (CatBoost) 
+r2: -0.1442 (KNN) 
+r2: 0.6388 (XGBoost) 
+r2: 0.6338 (LightGBM) 
+r2: 0.657 (CatBoost) 
 """
 
-base_models(X, y)
+base_models(X_train, y_train)
 # Base Models....
 # r2: 0.32 (LR)
 # r2: -0.0882 (KNN)
@@ -566,7 +568,7 @@ base_models(X, y)
 #                "min_samples_split": range(2, 30)}
 xgboost_params = {"learning_rate": [0.1],
                   "max_depth": [10,12,14],
-                  "n_estimators": [100,150]}
+                  "n_estimators": [200,250, 300]}
 lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
                    'max_depth':[4,6,8],
                    'n_estimators':[100,150,250]}
@@ -595,14 +597,17 @@ def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r
     for name, regressor, params in regressors_hpo:
         print(f"########## {name} ##########")
         cv_results = cross_validate(regressor, X, y, cv=cv, scoring=scoring)
-        print(f"{scoring} (Before): {round(cv_results['test_score'].mean(), 4)}")
+        if scoring == 'neg_mean_squared_error':
+            print(f"{scoring} (Before):  {np.sqrt(-round(cv_results['test_score'].mean(),4))}")
+        else:
+            print(f"{scoring} (Before): {round(cv_results['test_score'].mean(), 4)}")
 
         gs_best = GridSearchCV(regressor, params, cv=cv, n_jobs=-1, verbose=False).fit(X,y)
         final_model = regressor.set_params(**gs_best.best_params_)
 
         cv_results = cross_validate(final_model, X, y, cv=cv, scoring=scoring)
         if scoring == 'neg_mean_squared_error':
-            print(f"{scoring} (After): {-round(cv_results['test_score'].mean(), 4)}")
+            print(f"{scoring} (After): {np.sqrt(-round(cv_results['test_score'].mean(),4))}")
         else:
             print(f"{scoring} (After): {round(cv_results['test_score'].mean(), 4)}")
 
@@ -610,7 +615,15 @@ def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r
         best_models[name] = final_model
     return best_models
 
-best_models = hyperparameter_optimization(X, y, scoring='r2')
+best_models = hyperparameter_optimization(X_train, y_train, scoring='neg_mean_squared_error')
+# Hyperparameter Optimization....
+# ########## XGBoost ##########
+# r2 (Before): 0.641
+# r2 (After): 0.6548
+# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
+# neg_mean_squared_error (Before): -0.011
+# neg_mean_squared_error (After): 0.10488088481701516
+# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
 
 best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=250)
 best_xgb_model = best_models['XGBoost']

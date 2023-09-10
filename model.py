@@ -454,10 +454,10 @@ def MAPE(Y_actual,Y_Predicted):
 lrmodel = LinearRegression(n_jobs=-1)
 
 from sklearn.model_selection import train_test_split
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 # - - - - - - - - - - - - -
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 lrmodel.fit(X_train, y_train)
 
 df[outcome]
@@ -466,9 +466,11 @@ y_pred = lrmodel.predict(X_test)
 # cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
 mape = MAPE(y_test, y_pred)
 
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
+
 # print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
 
-# accuracy = lrmodel.score(X_test, y_test)
 accuracy_lr = (100 - mape)
 print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 79.71 %.
 #----------------------------------------------------------------------------
@@ -477,6 +479,8 @@ rfr_model.fit(X_train, y_train)
 
 y_pred = rfr_model.predict(X_test)
 
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
 
 errors = abs(y_pred - y_test)
 mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
@@ -491,6 +495,8 @@ xgbr_model.fit(X_train, y_train)
 xgbr_model.get_params
 #
 y_pred = xgbr_model.predict(X_test)
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
 
 errors = abs(y_pred - y_test)
 mape = 100 * (errors / (y_test+0.1))
@@ -504,6 +510,8 @@ lgbm_model.fit(X_train, y_train)
 lgbm_model.get_params()
 #{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 1.0, 'importance_type': 'split', 'learning_rate': 0.1, 'max_depth': -1, 'min_child_samples': 20, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 100, 'n_jobs': None, 'num_leaves': 31, 'objective': None, 'random_state': None, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbose': -1}
 y_pred = lgbm_model.predict(X_test)
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
 
 errors = abs(y_pred - y_test)
 mape = 100 * (errors / (y_test+0.1))
@@ -517,6 +525,8 @@ ctboost_model.fit(X_train, y_train)
 ctboost_model.get_all_params()
 
 y_pred = ctboost_model.predict(X_test)
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.1 %.
 
 errors = abs(y_pred - y_test)
 mape = 100 * (errors / (y_test+0.1))
@@ -581,8 +591,8 @@ ctboost_params = {'eval_metric':['RMSE','MAPE'],
 rfr_params = {'max_depth':range(5,10),
              'n_estimators': range(150,250,25)}
 
-xgboost_params = {"learning_rate": [ 0.1],
-                  "max_depth": [10,12,14],
+xgboost_params = {"learning_rate": [0.1],
+                  "max_depth": [12,14,18],
                   "n_estimators": [250,300]}
 regressors_hpo = [
     ("XGBoost", XGBRegressor(), xgboost_params)
@@ -615,7 +625,7 @@ def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r
         best_models[name] = final_model
     return best_models
 
-best_models = hyperparameter_optimization(X_train, y_train, scoring='neg_mean_squared_error')
+best_models = hyperparameter_optimization(X_train, y_train, scoring='r2')
 # Hyperparameter Optimization....
 # ########## XGBoost ##########
 # r2 (Before): 0.641
@@ -638,7 +648,6 @@ mape = 100 * (errors / (y_test+0.001))
 accuracy = 100 - np.mean(mape)
 print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 77.97 %.
 
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 mse = mean_squared_error(y_test, y_pred, squared=False)
 
 print("Mean Squared Error:", mse)
@@ -654,15 +663,6 @@ print('Mean Absoulte Error:',mae)
 # r2 (After): 0.6258
 # LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 250}
 
-########## XGBoost ##########
-# r2 (Before): 0.6249
-# r2 (After): 0.672
-# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 250}
-
-########## XGBoost ##########
-# neg_mean_squared_error (Before): -0.0112
-# neg_mean_squared_error (After): -0.0097
-# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 12, 'n_estimators': 300}
 ###############################################################################################################
 # TASK - Optuna (Opsiyonel)
 

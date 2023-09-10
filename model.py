@@ -423,9 +423,6 @@ from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientB
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
-df.isna().sum()
-# nan_rows = df[df.isna().any(axis=1)]
-df[num_cols] = df[num_cols].astype(float)
 
 
 from sklearn.preprocessing import StandardScaler
@@ -654,7 +651,7 @@ print("Mean Squared Error:", mse)
 # Mean Squared Error: 0.10400572469934198
 
 mae = mean_absolute_error(y_test, y_pred)
-print('Mean Absoulte Error:',mae)
+print('Mean Absolute Error:',mae)
 # Mean Absoulte Error: 0.08132177375680566
 
 

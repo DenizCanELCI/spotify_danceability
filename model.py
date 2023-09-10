@@ -29,8 +29,9 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
+df = df_.copy()
 
 #######################################################################
 # 1. Exploratory Data Analysis
@@ -39,13 +40,12 @@ df = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv
 df.info()
 
 outcome = 'danceability'
-
+df['time_signature'].unique()
 df["explicit"] = df["explicit"].astype(int)
 
 df.drop("Unnamed: 0", axis=1, inplace=True)
 
-df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7})
-
+df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7}) #Borana soralım
 df = df.drop(65900, axis=0)
 
 
@@ -163,7 +163,7 @@ df.info()
 check_df(df[num_cols])
 
 df.drop("explicit", axis=1, inplace=True)
-df = df[~df['time_signature'].isin([6, 7])]
+# df = df[~df['time_signature'].isin([6, 7])]
 
 # check_df(df[cat_cols])
 
@@ -269,20 +269,20 @@ for col in num_cols:
     print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
 
 # LOF
+#
+# from sklearn.neighbors import LocalOutlierFactor
+# lof_df = df
 
-from sklearn.neighbors import LocalOutlierFactor
-lof_df = df
-
-lof_df.drop("track_genre", axis=1, inplace=True)
-
-clf = LocalOutlierFactor(n_neighbors=20)
-clf.fit_predict(lof_df)
-
-df_scores = clf.negative_outlier_factor_
-
-df["lof"] = df_scores
-
-df = df[df["lof"] > -1.5]
+# lof_df.drop("track_genre", axis=1, inplace=True)
+#
+# clf = LocalOutlierFactor(n_neighbors=20)
+# clf.fit_predict(lof_df)
+#
+# df_scores = clf.negative_outlier_factor_
+#
+# df["lof"] = df_scores
+#
+# df = df[df["lof"] > -1.5]
 
 ####################################################################################################################
 #TASK - Encoding & Features
@@ -303,14 +303,10 @@ df = df[df["lof"] > -1.5]
 df.style.set_properties(**{'text-align': 'center'})
 df.head()
 
-pd.get_dummies(df, columns=["key"], drop_first=True).head()
-
-pd.get_dummies(df, columns=["time_signature"], drop_first=True).head()
-
-df.drop("key", axis=1, inplace=True)
-
-df.drop("time_signature", axis=1, inplace=True)
-
+df = pd.get_dummies(df, columns=["key"], drop_first=True)
+df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']] = df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']].astype(int)
+df = pd.get_dummies(df, columns=["time_signature"], drop_first=True) # Diğerlerini neden atıyor!!!!!!!!
+df[['time_signature_4']] = df[['time_signature_4']].astype(int)
 "Sadece track_genre kaldı onun için 113 kategori çıkıyor."
 
 #df['isFlat'] = 1
@@ -325,7 +321,6 @@ df.drop("time_signature", axis=1, inplace=True)
 # cat_but_car
 # df[cat_but_car]
 model_cols = [col for col in df.columns if col not in cat_but_car]
-df[model_cols]
 
 
 #######################################################################
@@ -347,8 +342,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_validate, GridSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.svm import SVR
-from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
@@ -368,6 +361,7 @@ df = temp_df.copy()
 y = df[outcome]
 X = df.copy()
 X.drop([outcome], axis=1, inplace=True)
+cat_but_car.remove('track_genre')
 for col in cat_but_car:
     X.drop([col], axis=1,inplace=True)
 
@@ -383,11 +377,11 @@ lrmodel = LinearRegression(n_jobs=-1)
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-# - - - - - - - - - - - - -
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+# - - - - - - - - - - - - -
+
 lrmodel.fit(X_train, y_train)
 
-df[outcome]
 y_pred = lrmodel.predict(X_test)
 
 # cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
@@ -563,26 +557,28 @@ best_models = hyperparameter_optimization(X_train, y_train, scoring='r2')
 # neg_mean_squared_error (After): 0.10488088481701516
 # XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
 
-best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=250)
-best_xgb_model = best_models['XGBoost']
+# best_xgb_model = best_models['XGBoost']
+best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=300)
 
+X_train.drop('track_genre', axis=1, inplace=True)
+X_test.drop('track_genre', axis=1, inplace=True)
 best_xgb_model.fit(X_train,y_train)
 y_pred = best_xgb_model.predict(X_test)
 
-errors = abs(y_pred - y_test)
-mape = 100 * (errors / (y_test+0.001))
-
-accuracy = 100 - np.mean(mape)
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 77.97 %.
-
 mse = mean_squared_error(y_test, y_pred, squared=False)
 
-print("Mean Squared Error:", mse)
+print("Root Mean Squared Error:", mse)
 # Mean Squared Error: 0.10400572469934198
 
 mae = mean_absolute_error(y_test, y_pred)
 print('Mean Absolute Error:',mae)
-# Mean Absoulte Error: 0.08132177375680566
+# Mean Absolute Error: 0.08132177375680566
+
+# errors = abs(y_pred - y_test)
+# mape = 100 * (errors / (y_test+0.001))
+#
+# accuracy = 100 - np.mean(mape)
+# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 77.97 %.
 
 
  ########## LightGBM ##########

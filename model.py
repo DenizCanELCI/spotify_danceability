@@ -29,64 +29,25 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
-
-"""df_.head()
-
-df_.info()
-
-df_.isnull().sum() #There is one null value
-
-
-
-artists             1
-album_name          1
-track_name          1
-
-df[df["artists"].isnull()]
-
-
-                    track_id artists album_name track_name  popularity  \
-65900  1kR4gIb7nGxHPI3D2ifs59     NaN        NaN        NaN           0   
-       duration_ms  explicit  danceability  energy  key  loudness  mode  \
-65900            0     False         0.501   0.583    7     -9.46     0   
-       speechiness  acousticness  instrumentalness  liveness  valence  \
-65900       0.0605          0.69           0.00396    0.0747    0.734   
-         tempo  time_signature track_genre  
-65900  138.391               4       k-pop  
-
-
-df_ = df_.drop(65900, axis=0)
-
-
-df_.describe().T"""
+df = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
 
 #######################################################################
 # 1. Exploratory Data Analysis
 #######################################################################
 
-df = df_.copy()
+df.info()
+
+outcome = 'danceability'
+
+df["explicit"] = df["explicit"].astype(int)
+
+df.drop("Unnamed: 0", axis=1, inplace=True)
+
+df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7})
 
 df = df.drop(65900, axis=0)
-#-----------------------------------------------*************************************************
-# TASK - Levitas kaç şarkıda geçiyor bulma
-# lst = []
-# for i, el in enumerate(list(df['artists'])):
-#     # lst.append(str(i))
-#     if type(el) == float:
-#         lst.append({i,0})
-#     elif 'evitas' in el:
-#         lst.append(1)
-#     else: lst.append(0)
-#
-# lst.count(float(1))
-#
-# indexes = [i for i in range(len(lst)) if lst[i] == 1]
-#
-# df.iloc[40531]
 
-#-----------------------------------------------*************************************************
 
 duplicated_rows = df[df.duplicated(subset=['track_id'])]
 df = df.drop(duplicated_rows.index)
@@ -109,15 +70,6 @@ duplicated_rows = df[df.duplicated(subset=['popularity', 'duration_ms', "explici
 df = df.drop(duplicated_rows.index)
 
 
-df = df.drop("Unnamed: 0", axis=1)
-
-# Time_signature için 3,4,5,6,7 değerleri atanmış (ex: 3 4'lük, 4 4'lük vs.) Fakat verisetinde bunlar 3,4,5,0,1 olarak gözüküyor. Bunlar:
-# 0 ->6 ve 1 ->7 olarak atandı.
-
-df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7})
-
-
-outcome = 'danceability'
 def check_df(dataframe, head=5):
     print("#################### Shape ######################")
     print(dataframe.shape)
@@ -210,6 +162,9 @@ df.info()
 
 check_df(df[num_cols])
 
+df.drop("explicit", axis=1, inplace=True)
+df = df[~df['time_signature'].isin([6, 7])]
+
 # check_df(df[cat_cols])
 
 
@@ -268,7 +223,7 @@ check_df(df[num_cols])
 # 2. Data Preprocessing & Feature Engineering
 #######################################################################
 # df.isnull().any()
-df["explicit"] = df["explicit"].astype(int)
+# df["explicit"] = df["explicit"].astype(int)
 def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
     quartile1 = dataframe[col_name].quantile(q1)
     quartile3 = dataframe[col_name].quantile(q3)
@@ -312,79 +267,59 @@ for col in num_cols:
 # Tekrar kontrol ediyoruz outlier durumlarını
 for col in num_cols:
     print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
-#outlier kalmadı!
-####################################################################################################################
 
-####################################################################################################################
-#TASK - Lof ile outlier tespiti
-# from sklearn.neighbors import LocalOutlierFactor
-# clf = LocalOutlierFactor(n_neighbors=20)
-# lof_out = clf.fit_predict(df[num_cols])
-# len(lof_out)
-# Counter(lof_out)
-#
-# df_scores = clf.negative_outlier_factor_
-# np.sort(df_scores)[0:5]
-#
-# scores = pd.DataFrame(np.sort(df_scores))
-# scores.plot(stacked=True, xlim=[0, 50], style='.-')
-# plt.show()
-#
-# th = np.sort(df_scores)[3]
-#
-# df[df_scores < th]
-#
-# df[df_scores < th].shape
-#
-# df.describe([0.01, 0.05, 0.75, 0.90, 0.99]).T
-#
-# df[df_scores < th].index
-#
-# df[df_scores < th].drop(axis=0, labels=df[df_scores < th].index)
-#
-# df.shape
-####################################################################################################################
-# TASK - Spotify Web API
-# import spotipy
-# from spotipy.oauth2 import SpotifyClientCredentials
-#
-# client_id = '1cc97646ee854447944864d5e0eb3ab8'
-# client_secret = 'your_client_secret'
-#
-# client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-# sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-#
-# results = sp.search(q='weezer', limit=20)
-# for idx, track in enumerate(results['tracks']['items']):
-#     print(idx, track['name'])
+# LOF
 
-#
+from sklearn.neighbors import LocalOutlierFactor
+lof_df = df
+
+lof_df.drop("track_genre", axis=1, inplace=True)
+
+clf = LocalOutlierFactor(n_neighbors=20)
+clf.fit_predict(lof_df)
+
+df_scores = clf.negative_outlier_factor_
+
+df["lof"] = df_scores
+
+df = df[df["lof"] > -1.5]
+
 ####################################################################################################################
 #TASK - Encoding & Features
 
-df.head()
+#df.head()
 
-df[cat_cols] # 'explicit', 'mode', 'time_signature'
-df['time_signature'].unique() # ordinality var! Bkz açıklama docstring'i.
+#df[cat_cols] # 'explicit', 'mode', 'time_signature'
+#df['time_signature'].unique() # ordinality var! Bkz açıklama docstring'i.
 
-temp_df = df.copy()
-temp_df['explicit'].unique()
-temp_df['explicit'] = [1 if el == True else 0 for el in temp_df['explicit']]
+#temp_df = df.copy()
+#temp_df['explicit'].unique()
+#temp_df['explicit'] = [1 if el == True else 0 for el in temp_df['explicit']]
 # True False yerine 1-0 a çevirdik.
 
-df = temp_df.copy()
-df['explicit'].unique() # array([0, 1], dtype=int64)
+#df = temp_df.copy()
+#df['explicit'].unique() # array([0, 1], dtype=int64)
 
 df.style.set_properties(**{'text-align': 'center'})
 df.head()
 
-df['isFlat'] = 1
+pd.get_dummies(df, columns=["key"], drop_first=True).head()
 
-df.loc[df['key'].isin([0, 2, 4, 5, 7, 9, 11]), 'isFlat'] = 0
+pd.get_dummies(df, columns=["time_signature"], drop_first=True).head()
 
-df["is4/4"] = 1
+df.drop("key", axis=1, inplace=True)
 
-df.loc[df['time_signature'].isin([3,5,6,7]), 'is4/4'] = 0
+df.drop("time_signature", axis=1, inplace=True)
+
+"Sadece track_genre kaldı onun için 113 kategori çıkıyor."
+
+#df['isFlat'] = 1
+
+#df.loc[df['key'].isin([0, 2, 4, 5, 7, 9, 11]), 'isFlat'] = 0
+
+#df["is4/4"] = 1
+
+#df.loc[df['time_signature'].isin([3,5,6,7]), 'is4/4'] = 0
 
 # df.columns
 # cat_but_car
@@ -392,11 +327,6 @@ df.loc[df['time_signature'].isin([3,5,6,7]), 'is4/4'] = 0
 model_cols = [col for col in df.columns if col not in cat_but_car]
 df[model_cols]
 
-####################################################################################################################
-####################################################################################################################
-#TASK - Encoding
-
-####################################################################################################################
 
 #######################################################################
 # 3. Base Model

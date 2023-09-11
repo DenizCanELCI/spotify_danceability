@@ -36,24 +36,25 @@ df = df_.copy()
 #######################################################################
 # 1. Exploratory Data Analysis
 #######################################################################
-
+df = df[df.track_genre != 'kids']
+df = df[df.track_genre != 'children']
 df.info()
-
+df.track_genre.unique()
 outcome = 'danceability'
 df['time_signature'].unique()
 df["explicit"] = df["explicit"].astype(int)
 
-df.drop("Unnamed: 0", axis=1, inplace=True)
+df.drop("Unnamed: 0", axis=1, inplace=True) # index' ile aynı!
 
 df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7}) #Borana soralım
-df = df.drop(65900, axis=0)
+df.drop(65900, axis=0, inplace=True)  # Şarkı ismi, sanatçı ve albüm ismi NaN!
 
 
 duplicated_rows = df[df.duplicated(subset=['track_id'])]
 df = df.drop(duplicated_rows.index)
 
-duplicated_rows = df[df.duplicated(subset=['track_name'])]
-df = df.drop(duplicated_rows.index)
+# duplicated_rows = df[df.duplicated(subset=['track_name'])]
+# df = df.drop(duplicated_rows.index)
 
 duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
 df = df.drop(duplicated_rows.index)
@@ -66,8 +67,8 @@ df = df.drop(duplicated_rows.index)
 
 duplicated_rows = df[df.duplicated(subset=['popularity', 'duration_ms', "explicit", "danceability", "energy", "key", "loudness",
                                            "mode", "speechiness", "acousticness", "instrumentalness", "liveness",
-                                           "valence", "tempo", "time_signature"])]
-df = df.drop(duplicated_rows.index)
+                                           "valence", "tempo", "time_signature"])] #numerik özellikler
+df = df.drop(duplicated_rows.index) #140k satırdan 86012 e düştü
 
 
 def check_df(dataframe, head=5):
@@ -162,7 +163,7 @@ df.info()
 
 check_df(df[num_cols])
 
-df.drop("explicit", axis=1, inplace=True)
+df.drop("explicit", axis=1, inplace=True) #Veri dengesiz olduğu için drop'ladık!
 # df = df[~df['time_signature'].isin([6, 7])]
 
 # check_df(df[cat_cols])
@@ -248,7 +249,7 @@ def check_outlier(dataframe, col_name):
 
 # num_cols.remove('Unnamed: 0')
 num_cols
-
+df.isnull().sum()
 for col in num_cols:
     check_outlier(df, col)
 
@@ -304,9 +305,12 @@ df.style.set_properties(**{'text-align': 'center'})
 df.head()
 
 df = pd.get_dummies(df, columns=["key"], drop_first=True)
-df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']] = df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']].astype(int)
+df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']] = \
+    df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']].astype(int)
+# True/False yerine 0/1 için astype(int) kullandık
 df = pd.get_dummies(df, columns=["time_signature"], drop_first=True) # Diğerlerini neden atıyor!!!!!!!!
-df[['time_signature_4']] = df[['time_signature_4']].astype(int)
+df[['time_signature_4','time_signature_5','time_signature_6','time_signature_7']] = \
+    df[['time_signature_4','time_signature_5','time_signature_6','time_signature_7']].astype(int)
 "Sadece track_genre kaldı onun için 113 kategori çıkıyor."
 
 #df['isFlat'] = 1
@@ -321,7 +325,6 @@ df[['time_signature_4']] = df[['time_signature_4']].astype(int)
 # cat_but_car
 # df[cat_but_car]
 model_cols = [col for col in df.columns if col not in cat_but_car]
-
 
 #######################################################################
 # 3. Base Model
@@ -354,25 +357,25 @@ X_scaled = StandardScaler().fit_transform(df[num_cols])
 temp_df = df.copy()
 # temp_df[num_cols] = pd.DataFrame(X_scaled, columns=temp_df[num_cols].columns)
 temp_df[num_cols] = pd.DataFrame(X_scaled, columns=num_cols, index=df[num_cols].index)
-temp_df.isna().sum()
 df = temp_df.copy()
 
 
 y = df[outcome]
+
 X = df.copy()
 X.drop([outcome], axis=1, inplace=True)
-cat_but_car.remove('track_genre')
+
 for col in cat_but_car:
     X.drop([col], axis=1,inplace=True)
 
 # cols = df.columns[df.eq('Gen Hoshino').any()]
 
 #----------------------------------------------------------------------------
-def MAPE(Y_actual,Y_Predicted):
-    mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
-    return mape
+# def MAPE(Y_actual,Y_Predicted):
+#     mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
+#     return mape
 
-lrmodel = LinearRegression(n_jobs=-1)
+# lrmodel = LinearRegression(n_jobs=-1)
 
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -380,82 +383,82 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 # - - - - - - - - - - - - -
 
-lrmodel.fit(X_train, y_train)
-
-y_pred = lrmodel.predict(X_test)
+# lrmodel.fit(X_train, y_train)
+#
+# y_pred = lrmodel.predict(X_test)
 
 # cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
-mape = MAPE(y_test, y_pred)
+# mape = MAPE(y_test, y_pred)
 
-rmse = mean_squared_error(y_test, y_pred, squared=False)
-print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
+# rmse = mean_squared_error(y_test, y_pred, squared=False)
+# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
 
 # print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
 
-accuracy_lr = (100 - mape)
-print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 79.71 %.
+# accuracy_lr = (100 - mape)
+# print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 79.71 %.
 #----------------------------------------------------------------------------
-rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
-rfr_model.fit(X_train, y_train)
-
-y_pred = rfr_model.predict(X_test)
-
-rmse = mean_squared_error(y_test, y_pred, squared=False)
-print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
-
-errors = abs(y_pred - y_test)
-mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
-accuracy = 100 - mape
-
-print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 79.46 %.
-#----------------------------------------------------------------------------
-
-xgbr_model = XGBRegressor()
-xgbr_model.fit(X_train, y_train)
-
-xgbr_model.get_params
+# rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
+# rfr_model.fit(X_train, y_train)
 #
-y_pred = xgbr_model.predict(X_test)
-rmse = mean_squared_error(y_test, y_pred, squared=False)
-print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
-
-errors = abs(y_pred - y_test)
-mape = 100 * (errors / (y_test+0.1))
-accuracy = 100 - np.mean(mape)
-
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.98 %.
+# y_pred = rfr_model.predict(X_test)
+#
+# rmse = mean_squared_error(y_test, y_pred, squared=False)
+# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
+#
+# errors = abs(y_pred - y_test)
+# mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
+# accuracy = 100 - mape
+#
+# print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 79.46 %.
 #----------------------------------------------------------------------------
-lgbm_model = LGBMRegressor(verbose=-1)
-lgbm_model.fit(X_train, y_train)
 
-lgbm_model.get_params()
-#{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 1.0, 'importance_type': 'split', 'learning_rate': 0.1, 'max_depth': -1, 'min_child_samples': 20, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 100, 'n_jobs': None, 'num_leaves': 31, 'objective': None, 'random_state': None, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbose': -1}
-y_pred = lgbm_model.predict(X_test)
-rmse = mean_squared_error(y_test, y_pred, squared=False)
-print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
+# xgbr_model = XGBRegressor()
+# xgbr_model.fit(X_train, y_train)
 
-errors = abs(y_pred - y_test)
-mape = 100 * (errors / (y_test+0.1))
-accuracy = 100 - np.mean(mape)
-
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 85.93 %
+# xgbr_model.get_params
+# #
+# y_pred = xgbr_model.predict(X_test)
+# rmse = mean_squared_error(y_test, y_pred, squared=False)
+# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
+#
+# errors = abs(y_pred - y_test)
+# mape = 100 * (errors / (y_test+0.1))
+# accuracy = 100 - np.mean(mape)
+#
+# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.98 %.
 #----------------------------------------------------------------------------
-ctboost_model = CatBoostRegressor(verbose=False)
-ctboost_model.fit(X_train, y_train)
-
-ctboost_model.get_all_params()
-
-y_pred = ctboost_model.predict(X_test)
-rmse = mean_squared_error(y_test, y_pred, squared=False)
-print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.1 %.
-
-errors = abs(y_pred - y_test)
-mape = 100 * (errors / (y_test+0.1))
-accuracy = 100 - np.mean(mape)
-
-print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.87 %.
+# lgbm_model = LGBMRegressor(verbose=-1)
+# lgbm_model.fit(X_train, y_train)
+#
+# lgbm_model.get_params()
+# #{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 1.0, 'importance_type': 'split', 'learning_rate': 0.1, 'max_depth': -1, 'min_child_samples': 20, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 100, 'n_jobs': None, 'num_leaves': 31, 'objective': None, 'random_state': None, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbose': -1}
+# y_pred = lgbm_model.predict(X_test)
+# rmse = mean_squared_error(y_test, y_pred, squared=False)
+# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
+#
+# errors = abs(y_pred - y_test)
+# mape = 100 * (errors / (y_test+0.1))
+# accuracy = 100 - np.mean(mape)
+#
+# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 85.93 %
 #----------------------------------------------------------------------------
-def base_models(X, y, scoring="r2"): # scoring="neg_mean_squared_error"
+# ctboost_model = CatBoostRegressor(verbose=False)
+# ctboost_model.fit(X_train, y_train)
+#
+# ctboost_model.get_all_params()
+#
+# y_pred = ctboost_model.predict(X_test)
+# rmse = mean_squared_error(y_test, y_pred, squared=False)
+# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.1 %.
+#
+# errors = abs(y_pred - y_test)
+# mape = 100 * (errors / (y_test+0.1))
+# accuracy = 100 - np.mean(mape)
+#
+# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.87 %.
+#----------------------------------------------------------------------------
+def base_models(X, y, scoring="neg_root_mean_squared_error"): # scoring="neg_mean_squared_error","r2","neg_root_mean_squared_error"
     print("Base Models....")
     regressors = [
         ("LR", LinearRegression()),
@@ -560,19 +563,32 @@ best_models = hyperparameter_optimization(X_train, y_train, scoring='r2')
 # best_xgb_model = best_models['XGBoost']
 best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=300)
 
-X_train.drop('track_genre', axis=1, inplace=True)
-X_test.drop('track_genre', axis=1, inplace=True)
+
 best_xgb_model.fit(X_train,y_train)
 y_pred = best_xgb_model.predict(X_test)
 
-mse = mean_squared_error(y_test, y_pred, squared=False)
+mse = mean_squared_error(y_test, y_pred, squared=False) #rmse hesabı
+col1 = list(y_test.index)
+col2 = y_pred
+y_pred_ind = pd.DataFrame(col2, index=col1)
 
+y_pred_ind.sort_values(by=0).tail(50)
+y_test.sort_values()
+
+y_pred[14320]
+y_test[14320]
+
+y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
+df[df.index==20717]
 print("Root Mean Squared Error:", mse)
 # Mean Squared Error: 0.10400572469934198
 
 mae = mean_absolute_error(y_test, y_pred)
 print('Mean Absolute Error:',mae)
 # Mean Absolute Error: 0.08132177375680566
+type(y_pred)
+np.sort(y_pred)[-3:]
+
 
 # errors = abs(y_pred - y_test)
 # mape = 100 * (errors / (y_test+0.001))

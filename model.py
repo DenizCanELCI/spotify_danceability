@@ -525,7 +525,7 @@ regressors_hpo = [
     # ("RandomForest", RandomForestRegressor(), rfr_params)
 ]
 
-def hyperparameter_optimization(X, y, cv=4, scoring="r2"): #    >>> scores =>('r2', 'neg_mean_squared_error')
+def hyperparameter_optimization(X, y, cv=4, scoring="neg_root_mean_squared_error"): #    >>> scores =>('r2', 'neg_mean_squared_error')
     print("Hyperparameter Optimization....")
     best_models = {}
     for name, regressor, params in regressors_hpo:

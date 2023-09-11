@@ -6,7 +6,7 @@ album_name: The album name in which the track appears
 track_name: Name of the track
 popularity: The popularity of a track is a value between 0 and 100, with 100 being the most popular. The popularity is calculated by algorithm and is based, in the most part, on the total number of plays the track has had and how recent those plays are. Generally speaking, songs that are being played a lot now will have a higher popularity than songs that were played a lot in the past. Duplicate tracks (e.g. the same track from a single and an album) are rated independently. Artist and album popularity is derived mathematically from track popularity.
 duration_ms: The track length in milliseconds
-explicit: Whether or not the track has explicit lyrics (true = yes it does; false = no it does not OR unknown)
+explicit: Whether the track has explicit lyrics (true = yes it does; false = no it does not OR unknown)
 danceability: Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. A value of 0.0 is least danceable and 1.0 is most danceable
 energy: Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity. Typically, energetic tracks feel fast, loud, and noisy. For example, death metal has high energy, while a Bach prelude scores low on the scale
 key: The key the track is in. Integers map to pitches using standard Pitch Class notation. E.g. 0 = C, 1 = C♯/D♭, 2 = D, and so on. If no key was detected, the value is -1
@@ -25,36 +25,51 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.model_selection import cross_validate, GridSearchCV
+from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+from catboost import CatBoostRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+df_ = pd.read_csv("dataset/dataset.csv")
 
 df = df_.copy()
 
 #######################################################################
 # 1. Exploratory Data Analysis
 #######################################################################
-df = df[df.track_genre != 'kids']
-df = df[df.track_genre != 'children']
 df.info()
+
+df = df[df.track_genre != 'kids']
+
+df = df[df.track_genre != 'children']
+
 df.track_genre.unique()
+
 outcome = 'danceability'
+
 df['time_signature'].unique()
-df["explicit"] = df["explicit"].astype(int)
 
-df.drop("Unnamed: 0", axis=1, inplace=True) # index' ile aynı!
+df.drop("explicit", axis=1, inplace=True)
 
-df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7}) #Borana soralım
-df.drop(65900, axis=0, inplace=True)  # Şarkı ismi, sanatçı ve albüm ismi NaN!
+df.drop("Unnamed: 0", axis=1, inplace=True)
+
+df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7})
+
+df.drop(65900, axis=0, inplace=True)
 
 
 duplicated_rows = df[df.duplicated(subset=['track_id'])]
 df = df.drop(duplicated_rows.index)
-
-# duplicated_rows = df[df.duplicated(subset=['track_name'])]
-# df = df.drop(duplicated_rows.index)
 
 duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
 df = df.drop(duplicated_rows.index)
@@ -65,10 +80,11 @@ df = df.drop(duplicated_rows.index)
 duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name"])]
 df = df.drop(duplicated_rows.index)
 
-duplicated_rows = df[df.duplicated(subset=['popularity', 'duration_ms', "explicit", "danceability", "energy", "key", "loudness",
+duplicated_rows = df[df.duplicated(subset=['popularity', 'duration_ms', "danceability", "energy", "key", "loudness",
                                            "mode", "speechiness", "acousticness", "instrumentalness", "liveness",
-                                           "valence", "tempo", "time_signature"])] #numerik özellikler
-df = df.drop(duplicated_rows.index) #140k satırdan 86012 e düştü
+                                           "valence", "tempo", "time_signature"])]
+
+df = df.drop(duplicated_rows.index)
 
 
 def check_df(dataframe, head=5):
@@ -83,15 +99,11 @@ def check_df(dataframe, head=5):
     print("#################### NA #########################")
     print(dataframe.isnull().sum())
     print("#################### Quantiles ##################")
-    print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
-
-# except_explicit = df.drop("explicit", axis=1) # check_df fonksiyonunda "explicit" değişkeni hata veriyor bu yüzden çıkardım
-
-# check_df(except_explicit) #DE: bende except_explicit için de hata verdi, sadece numeric değerler gönderilebilir
+    print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1], numeric_only=True).T)
 
 
-# cat treshold değeri 10 olarak atanmış. Fakat veriseti parametre acıklamalarından da anlaşılacağı üzere key değeri 12 adet. Anahtar
-# nota kategorik olarak kullanılmalı
+check_df(df)
+
 
 def grab_col_names(dataframe, cat_th=13, car_th=20):
     """
@@ -148,83 +160,61 @@ def grab_col_names(dataframe, cat_th=13, car_th=20):
 cat_cols, num_cols, cat_but_car = grab_col_names(df)
 
 num_cols.remove(outcome)
-#
-# df[cat_cols]
-#
-# df[num_cols]
-#
-# df[cat_but_car]
-#
-# df['track_genre'].nunique()
-#
-# df['track_genre'].unique()
-
-df.info()
-
-check_df(df[num_cols])
-
-df.drop("explicit", axis=1, inplace=True) #Veri dengesiz olduğu için drop'ladık!
-# df = df[~df['time_signature'].isin([6, 7])]
-
-# check_df(df[cat_cols])
 
 
-# def cat_summary(dataframe, col_name, plot=False):
-#     print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
-#                         "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
-#     print("##########################################")
-#     if plot:
-#         sns.countplot(x=dataframe[col_name], data=dataframe)
-#         plt.show()
-#
-# df[cat_cols]
-#
-# for col in cat_cols:
-#     cat_summary(df, col, plot=False)
-#
-#
-# def num_summary(dataframe, numerical_col, plot=False):
-#     quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
-#     print(dataframe[numerical_col].describe(quantiles).T)
-#
-#     if plot:
-#         dataframe[numerical_col].hist(bins=20)
-#         plt.xlabel(numerical_col)
-#         plt.title(numerical_col)
-#         plt.show(block=True)
-#
-# df[num_cols]
-#
-# for col in num_cols:
-#     num_summary(df, col)
-#
-# def target_summary_with_num(dataframe, target, numerical_col):
-#     print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
-#
-# for col in num_cols:
-#     target_summary_with_num(df, outcome, col)
-#
-# def target_summary_with_cat(dataframe, target, categorical_col):
-#     print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
-#
-# for col in cat_cols:
-#     target_summary_with_cat(df, outcome, col)
 
-# def correlation_matrix(df, cols):
-#     fig = plt.gcf()
-#     fig.set_size_inches(10, 8)
-#     plt.xticks(fontsize=10)
-#     plt.yticks(fontsize=10)
-#     fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={"size": 12}, linecolor="w", cmap="RdBu")
-#     plt.show(block=True)
-#
-# correlation_matrix(df, num_cols)
+def cat_summary(dataframe, col_name, plot=False):
+    print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
+                        "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
+    print("##########################################")
+    if plot:
+        sns.countplot(x=dataframe[col_name], data=dataframe)
+        plt.show()
+
+
+for col in cat_cols:
+    cat_summary(df, col, plot=False)
+
+
+def num_summary(dataframe, numerical_col, plot=False):
+    quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
+    print(dataframe[numerical_col].describe(quantiles).T)
+
+    if plot:
+        dataframe[numerical_col].hist(bins=20)
+        plt.xlabel(numerical_col)
+        plt.title(numerical_col)
+        plt.show(block=True)
+
+
+for col in num_cols:
+    num_summary(df, col)
+
+
+def target_summary_with_cat(dataframe, target, categorical_col):
+    print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
+
+
+for col in cat_cols:
+    target_summary_with_cat(df, outcome, col)
+
+
+def correlation_matrix(df, cols):
+    fig = plt.gcf()
+    fig.set_size_inches(10, 8)
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={"size": 12}, linecolor="w", cmap="RdBu")
+    plt.show(block=True)
+
+
+correlation_matrix(df, num_cols)
 
 #######################################################################
 # 2. Data Preprocessing & Feature Engineering
 #######################################################################
-# df.isnull().any()
-# df["explicit"] = df["explicit"].astype(int)
+
+
 def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
     quartile1 = dataframe[col_name].quantile(q1)
     quartile3 = dataframe[col_name].quantile(q3)
@@ -247,59 +237,26 @@ def check_outlier(dataframe, col_name):
     else:
         return False
 
-# num_cols.remove('Unnamed: 0')
-num_cols
-df.isnull().sum()
-for col in num_cols:
-    check_outlier(df, col)
 
-# df[num_cols]
 
 ####################################################################################################################
-#TASK - Outlier tespiti ve kaldirilmasi
-for col in num_cols:
-    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
 
-# Outlier'ları iyileştiriyoruz
+
+
+for col in num_cols:
+    print(col, ":", check_outlier(df, col))
+
+
 for col in num_cols:
     replace_with_thresholds(df, col)
 
 
-# Tekrar kontrol ediyoruz outlier durumlarını
 for col in num_cols:
-    print(f'col = {col}\tis true? =  {check_outlier(df, col)}')
-
-# LOF
-#
-# from sklearn.neighbors import LocalOutlierFactor
-# lof_df = df
-
-# lof_df.drop("track_genre", axis=1, inplace=True)
-#
-# clf = LocalOutlierFactor(n_neighbors=20)
-# clf.fit_predict(lof_df)
-#
-# df_scores = clf.negative_outlier_factor_
-#
-# df["lof"] = df_scores
-#
-# df = df[df["lof"] > -1.5]
+    print(col, ":", check_outlier(df, col))
 
 ####################################################################################################################
 #TASK - Encoding & Features
 
-#df.head()
-
-#df[cat_cols] # 'explicit', 'mode', 'time_signature'
-#df['time_signature'].unique() # ordinality var! Bkz açıklama docstring'i.
-
-#temp_df = df.copy()
-#temp_df['explicit'].unique()
-#temp_df['explicit'] = [1 if el == True else 0 for el in temp_df['explicit']]
-# True False yerine 1-0 a çevirdik.
-
-#df = temp_df.copy()
-#df['explicit'].unique() # array([0, 1], dtype=int64)
 
 df.style.set_properties(**{'text-align': 'center'})
 df.head()
@@ -307,55 +264,22 @@ df.head()
 df = pd.get_dummies(df, columns=["key"], drop_first=True)
 df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']] = \
     df[['key_1','key_2','key_3','key_4','key_5','key_6','key_7','key_8','key_9','key_10','key_11']].astype(int)
-# True/False yerine 0/1 için astype(int) kullandık
-df = pd.get_dummies(df, columns=["time_signature"], drop_first=True) # Diğerlerini neden atıyor!!!!!!!!
+
+df = pd.get_dummies(df, columns=["time_signature"], drop_first=True)
 df[['time_signature_4','time_signature_5','time_signature_6','time_signature_7']] = \
     df[['time_signature_4','time_signature_5','time_signature_6','time_signature_7']].astype(int)
-"Sadece track_genre kaldı onun için 113 kategori çıkıyor."
 
-#df['isFlat'] = 1
 
-#df.loc[df['key'].isin([0, 2, 4, 5, 7, 9, 11]), 'isFlat'] = 0
-
-#df["is4/4"] = 1
-
-#df.loc[df['time_signature'].isin([3,5,6,7]), 'is4/4'] = 0
-
-# df.columns
-# cat_but_car
-# df[cat_but_car]
 model_cols = [col for col in df.columns if col not in cat_but_car]
 
 #######################################################################
 # 3. Base Model
 #######################################################################
-from sklearn.ensemble import RandomForestRegressor
-
-# rfr_model = RandomForestRegressor(n_estimators=100,criterion="squared_error",
-#                                   max_depth=None,
-#                                   min_samples_split=2,
-#                                   min_samples_leaf=1,
-#                                   min_weight_fraction_leaf=0.0,
-#                                   max_features=1.0,
-#                                   max_leaf_nodes=None,
-#                                   min_impurity_decrease=0.0,
-#                                   bootstrap=True,
-#                                   oob_score=False,
-#                                   random_state=17)
-from sklearn.model_selection import cross_validate, GridSearchCV
-from sklearn.linear_model import LinearRegression
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
-from catboost import CatBoostRegressor
 
 
-from sklearn.preprocessing import StandardScaler
 # Standartlaştırma
 X_scaled = StandardScaler().fit_transform(df[num_cols])
 temp_df = df.copy()
-# temp_df[num_cols] = pd.DataFrame(X_scaled, columns=temp_df[num_cols].columns)
 temp_df[num_cols] = pd.DataFrame(X_scaled, columns=num_cols, index=df[num_cols].index)
 df = temp_df.copy()
 
@@ -368,199 +292,83 @@ X.drop([outcome], axis=1, inplace=True)
 for col in cat_but_car:
     X.drop([col], axis=1,inplace=True)
 
-# cols = df.columns[df.eq('Gen Hoshino').any()]
 
-#----------------------------------------------------------------------------
-# def MAPE(Y_actual,Y_Predicted):
-#     mape = np.mean(np.abs((Y_actual - Y_Predicted)/(Y_actual+0.1)))*100
-#     return mape
-
-# lrmodel = LinearRegression(n_jobs=-1)
-
-from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-# - - - - - - - - - - - - -
 
-# lrmodel.fit(X_train, y_train)
-#
-# y_pred = lrmodel.predict(X_test)
-
-# cv_results = cross_validate(lrmodel, X, y, cv=5, scoring='f1')
-# mape = MAPE(y_test, y_pred)
-
-# rmse = mean_squared_error(y_test, y_pred, squared=False)
-# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
-
-# print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
-
-# accuracy_lr = (100 - mape)
-# print('Accuracy:', round(accuracy_lr, 2), '%.')# Accuracy = 79.71 %.
-#----------------------------------------------------------------------------
-# rfr_model = RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0)
-# rfr_model.fit(X_train, y_train)
-#
-# y_pred = rfr_model.predict(X_test)
-#
-# rmse = mean_squared_error(y_test, y_pred, squared=False)
-# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.14 %.
-#
-# errors = abs(y_pred - y_test)
-# mape = MAPE(y_test, y_pred) #100 * (errors / y_test)
-# accuracy = 100 - mape
-#
-# print('Accuracy:', round(accuracy, 2), '%.') #Accuracy: 79.46 %.
-#----------------------------------------------------------------------------
-
-# xgbr_model = XGBRegressor()
-# xgbr_model.fit(X_train, y_train)
-
-# xgbr_model.get_params
-# #
-# y_pred = xgbr_model.predict(X_test)
-# rmse = mean_squared_error(y_test, y_pred, squared=False)
-# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
-#
-# errors = abs(y_pred - y_test)
-# mape = 100 * (errors / (y_test+0.1))
-# accuracy = 100 - np.mean(mape)
-#
-# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.98 %.
-#----------------------------------------------------------------------------
-# lgbm_model = LGBMRegressor(verbose=-1)
-# lgbm_model.fit(X_train, y_train)
-#
-# lgbm_model.get_params()
-# #{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 1.0, 'importance_type': 'split', 'learning_rate': 0.1, 'max_depth': -1, 'min_child_samples': 20, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 100, 'n_jobs': None, 'num_leaves': 31, 'objective': None, 'random_state': None, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbose': -1}
-# y_pred = lgbm_model.predict(X_test)
-# rmse = mean_squared_error(y_test, y_pred, squared=False)
-# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.11 %.
-#
-# errors = abs(y_pred - y_test)
-# mape = 100 * (errors / (y_test+0.1))
-# accuracy = 100 - np.mean(mape)
-#
-# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 85.93 %
-#----------------------------------------------------------------------------
-# ctboost_model = CatBoostRegressor(verbose=False)
-# ctboost_model.fit(X_train, y_train)
-#
-# ctboost_model.get_all_params()
-#
-# y_pred = ctboost_model.predict(X_test)
-# rmse = mean_squared_error(y_test, y_pred, squared=False)
-# print('Rmse:', round(rmse, 2), '%.') #Rmse: 0.1 %.
-#
-# errors = abs(y_pred - y_test)
-# mape = 100 * (errors / (y_test+0.1))
-# accuracy = 100 - np.mean(mape)
-#
-# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 86.87 %.
-#----------------------------------------------------------------------------
-def base_models(X, y, scoring="neg_root_mean_squared_error"): # scoring="neg_mean_squared_error","r2","neg_root_mean_squared_error"
+def base_models_rootmse(X, y, scoring="neg_root_mean_squared_error"):
     print("Base Models....")
     regressors = [
-        ("LR", LinearRegression()),
-        ("KNN", KNeighborsRegressor()),
-        # ("SVC", SVR()),
-        # ("CART", DecisionTreeRegressor()),
-        # ("RF", RandomForestRegressor()),
-        # ("Adaboost", AdaBoostRegressor()),
-        # ("GBM", GradientBoostingRegressor()),
         ("XGBoost", XGBRegressor()),
         ("LightGBM", LGBMRegressor(verbose=-1)),
         ("CatBoost", CatBoostRegressor(verbose=False))
     ]
     for name, regressor in regressors:
         cv_results = cross_validate(regressor, X, y, cv=3, scoring=scoring)
-        if scoring == 'neg_mean_squared_error':
-            print(f"{scoring}: {round(-cv_results['test_score'].mean(), 4)} ({name}) ")
-        else:
-            print(f"{scoring}: {round(cv_results['test_score'].mean(), 4)} ({name}) ")
+        print(f"{scoring}: {round(np.sqrt(-cv_results['test_score'].mean()), 4)} ({name}) ")
     return
-"""
-Base Models....
-r2: -0.1442 (KNN) 
-r2: 0.6388 (XGBoost) 
-r2: 0.6338 (LightGBM) 
-r2: 0.657 (CatBoost) 
-"""
 
-base_models(X_train, y_train)
-# Base Models....
-# r2: 0.32 (LR)
-# r2: -0.0882 (KNN)
-# r2: 0.6198 (XGBoost)
-# r2: 0.5998 (LightGBM)
-# r2: 0.6285 (CatBoost)
+
+
+base_models_rootmse(X_train, y_train)
+# Base Models_rootmse
+#neg_root_mean_squared_error: 0.1063 (XGBoost)
+#neg_root_mean_squared_error: 0.1073 (LightGBM)
+#neg_root_mean_squared_error: 0.1039 (CatBoost)
+
+
 #######################################################################
 # 4. Automated Hyperparameter Optimization
 #######################################################################
 
-# cart_params = {"max_depth": range(1, 20),
-#                "min_samples_split": range(2, 30)}
 xgboost_params = {"learning_rate": [0.1],
-                  "max_depth": [10,12,14],
-                  "n_estimators": [200,250, 300]}
-lightgbm_params = {'learning_rate':[0.01, 0.1, 0.3,],
-                   'max_depth':[4,6,8],
-                   'n_estimators':[100,150,250]}
-# ctboost_model.get_all_params()
+                  "max_depth": [10, 12, 14],
+                  "n_estimators": range(50, 80, 10)}
+lightgbm_params = {'learning_rate': [0.01, 0.1, 0.3],
+                   'max_depth': [4, 6, 8],
+                   'n_estimators': range(50,80,10)}
 
-ctboost_params = {'eval_metric':['RMSE','MAPE'],
-                  'iterations':range(500,1500,500),
-                  'depth':[4,6,8,12]
+catboost_params = {'eval_metric': ['RMSE','MAPE'],
+                   'iterations': range(500, 1000, 250),
+                   'depth': [4, 6, 8, 12]
 }
-rfr_params = {'max_depth':range(5,10),
-             'n_estimators': range(150,250,25)}
 
-xgboost_params = {"learning_rate": [0.1],
-                  "max_depth": [12,14,18],
-                  "n_estimators": [250,300]}
+
 regressors_hpo = [
-    ("XGBoost", XGBRegressor(), xgboost_params)
-    # ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)
-    # ("CatBoost", CatBoostRegressor(verbose=False), ctboost_params)
-    # ("RandomForest", RandomForestRegressor(), rfr_params)
+    ("XGBoost", XGBRegressor(), xgboost_params),
+    ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params),
+    ("CatBoost", CatBoostRegressor(verbose=False), catboost_params)
 ]
 
-def hyperparameter_optimization(X, y, cv=4, scoring="neg_root_mean_squared_error"): #    >>> scores =>('r2', 'neg_mean_squared_error')
+
+def hyperparameter_optimization_rmse(X, y, cv=4, scoring="neg_root_mean_squared_error"):
     print("Hyperparameter Optimization....")
     best_models = {}
     for name, regressor, params in regressors_hpo:
         print(f"########## {name} ##########")
         cv_results = cross_validate(regressor, X, y, cv=cv, scoring=scoring)
-        if scoring == 'neg_mean_squared_error':
-            print(f"{scoring} (Before):  {np.sqrt(-round(cv_results['test_score'].mean(),4))}")
-        else:
-            print(f"{scoring} (Before): {round(cv_results['test_score'].mean(), 4)}")
+        print(f"{scoring} (Before):  {-round(cv_results['test_score'].mean(),4)}")
 
         gs_best = GridSearchCV(regressor, params, cv=cv, n_jobs=-1, verbose=False).fit(X,y)
         final_model = regressor.set_params(**gs_best.best_params_)
 
         cv_results = cross_validate(final_model, X, y, cv=cv, scoring=scoring)
-        if scoring == 'neg_mean_squared_error':
-            print(f"{scoring} (After): {np.sqrt(-round(cv_results['test_score'].mean(),4))}")
-        else:
-            print(f"{scoring} (After): {round(cv_results['test_score'].mean(), 4)}")
+        print(f"{scoring} (After): {-round(cv_results['test_score'].mean(),4)}")
 
         print(f"{name} best params: {gs_best.best_params_}", end="\n\n")
         best_models[name] = final_model
     return best_models
 
-best_models = hyperparameter_optimization(X_train, y_train, scoring='r2')
-# Hyperparameter Optimization....
-# ########## XGBoost ##########
-# r2 (Before): 0.641
-# r2 (After): 0.6548
-# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
-########## XGBoost ##########
-# neg_mean_squared_error (Before):  0.10488088481701516
-# neg_mean_squared_error (After): 0.10488088481701516
-# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
 
-# best_xgb_model = best_models['XGBoost']
+best_models = hyperparameter_optimization_rmse(X_train, y_train, scoring='neg_root_mean_squared_error')
+
+#Hyperparameter Optimization....
+########## XGBoost ##########
+#neg_root_mean_squared_error (Before):  0.1052
+#neg_root_mean_squared_error (After): 0.1042
+#XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
+
+
 best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=300)
 
 
@@ -590,19 +398,9 @@ type(y_pred)
 np.sort(y_pred)[-3:]
 
 
-# errors = abs(y_pred - y_test)
-# mape = 100 * (errors / (y_test+0.001))
-#
-# accuracy = 100 - np.mean(mape)
-# print('Accuracy:', round(accuracy, 2), '%.') # Accuracy: 77.97 %.
-
 
  ########## LightGBM ##########
 # r2 (Before): 0.6007
 # r2 (After): 0.6258
 # LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 250}
-
-###############################################################################################################
-# TASK - Optuna (Opsiyonel)
-
-###############################################################################################################
+################################################

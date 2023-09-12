@@ -34,7 +34,8 @@ from catboost import CatBoostRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -398,5 +399,31 @@ print('Mean Absolute Error:',mae)
 # Mean Absolute Error: 0.08132177375680566
 type(y_pred)
 np.sort(y_pred)[-3:]
+
+
+def spotipy_add_playlist(client_id,
+                         playlist_name,
+                         username_id = 11124005204,
+                         inp_scope="playlist-modify-public playlist-modify-private"):
+    """
+    :param username_id:
+    :return:
+    """
+
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="1cc97646ee854447944864d5e0eb3ab8",
+                                                   client_secret="9a4b2467714941af90f5ced291d033f6",
+                                                   redirect_uri='https://open.spotify.com/',
+                                                   scope=inp_scope))
+
+    playlist_name = "ML Dance Playlist"
+    playlist_description = "This is my new Dance playlist"
+    playlist = sp.user_playlist_create(user=username_id, name=playlist_name, public=True,
+                                       description=playlist_description)
+
+    # Add tracks to the playlist
+    track_uris = ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:2takcwOaAZWiXQijPHIx7B"]
+    sp.playlist_add_items(playlist_id=playlist["id"], items=track_uris)
+
+    return
 
 

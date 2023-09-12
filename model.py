@@ -398,9 +398,3 @@ type(y_pred)
 np.sort(y_pred)[-3:]
 
 
-
- ########## LightGBM ##########
-# r2 (Before): 0.6007
-# r2 (After): 0.6258
-# LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 250}
-################################################

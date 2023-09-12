@@ -53,6 +53,8 @@ df = df[df.track_genre != 'kids']
 
 df = df[df.track_genre != 'children']
 
+df = df[df.track_genre != 'study']
+
 df.track_genre.unique()
 
 outcome = 'danceability'
@@ -387,7 +389,7 @@ y_pred[14320]
 y_test[14320]
 
 y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
-df[df.index==20717]
+df[df.index==31039]
 print("Root Mean Squared Error:", mse)
 # Mean Squared Error: 0.10400572469934198
 

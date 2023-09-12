@@ -410,8 +410,8 @@ def spotipy_add_playlist(client_id,
     :return:
     """
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="1cc97646ee854447944864d5e0eb3ab8",
-                                                   client_secret="9a4b2467714941af90f5ced291d033f6",
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="client_id",
+                                                   client_secret="client_secret",
                                                    redirect_uri='https://open.spotify.com/',
                                                    scope=inp_scope))
 

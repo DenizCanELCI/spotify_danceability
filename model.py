@@ -36,12 +36,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+import random
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 
-df_ = pd.read_csv("dataset/dataset.csv")
+df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
 
 df = df_.copy()
 
@@ -379,26 +380,35 @@ best_xgb_model.fit(X_train,y_train)
 y_pred = best_xgb_model.predict(X_test)
 
 mse = mean_squared_error(y_test, y_pred, squared=False) #rmse hesabı
-col1 = list(y_test.index)
-col2 = y_pred
-y_pred_ind = pd.DataFrame(col2, index=col1)
-
-y_pred_ind.sort_values(by=0).tail(50)
-y_test.sort_values()
-
-y_pred[14320]
-y_test[14320]
-
-y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
-df[df.index==31039]
 print("Root Mean Squared Error:", mse)
 # Mean Squared Error: 0.10400572469934198
 
 mae = mean_absolute_error(y_test, y_pred)
 print('Mean Absolute Error:',mae)
 # Mean Absolute Error: 0.08132177375680566
-type(y_pred)
-np.sort(y_pred)[-3:]
+
+
+#---------------------------------------------Aşağısı çalışma halinde !-----------------------------------
+col1 = list(y_test.index)
+col2 = y_pred
+y_pred_ind = pd.DataFrame(col2, index=col1)
+
+top_200 = y_pred_ind.sort_values(by=0).tail(200).index
+y_test.sort_values()
+
+random_50_tracks_ind = random.choices(top_200, k=50)
+np.max(random_50_tracks_ind)
+np.min(random_50_tracks_ind)
+y_pred[14320]
+y_test[14320]
+
+y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
+df[df.index==94275]
+df[df.index==top_200]
+random_50_tracks = df.iloc[random_50_tracks_ind[1]]
+random_50_tracks = [df.iloc[indd] for indd in random_50_tracks_ind]
+
+spotipy_add_playlist()
 
 
 def spotipy_add_playlist(client_id,
@@ -421,7 +431,11 @@ def spotipy_add_playlist(client_id,
                                        description=playlist_description)
 
     # Add tracks to the playlist
-    track_uris = ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:2takcwOaAZWiXQijPHIx7B"]
+    # track_uris = ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:2takcwOaAZWiXQijPHIx7B"]
+    track_uris =
+    for track in track_id_list:
+        track_uris.append("spotify:track:"+str(track_id))
+
     sp.playlist_add_items(playlist_id=playlist["id"], items=track_uris)
 
     return

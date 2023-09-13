@@ -38,6 +38,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import random
 from datetime import datetime
+import gradio as gr
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -320,7 +321,16 @@ base_models_rootmse(X_train, y_train)
 #neg_root_mean_squared_error: 0.1063 (XGBoost)
 #neg_root_mean_squared_error: 0.1073 (LightGBM)
 #neg_root_mean_squared_error: 0.1039 (CatBoost)
-
+########## XGBoost ##########
+# neg_root_mean_squared_error (Before):  0.1054
+# neg_root_mean_squared_error (After): 0.1042
+# XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 70}
+########## LightGBM ##########
+# neg_root_mean_squared_error (Before):  0.1069
+# neg_root_mean_squared_error (After): 0.1068
+# LightGBM best params: {'learning_rate': 0.3, 'max_depth': 6, 'n_estimators': 70}
+########## CatBoost ##########
+# neg_root_mean_squared_error (Before):  0.1032
 
 #######################################################################
 # 4. Automated Hyperparameter Optimization
@@ -333,6 +343,10 @@ lightgbm_params = {'learning_rate': [0.01, 0.1, 0.3],
                    'max_depth': [4, 6, 8],
                    'n_estimators': range(50,80,10)}
 
+# catboost_params = {'eval_metric': ['RMSE','MAPE'],
+#                    'iterations': range(500, 1000, 250),
+#                    'depth': [4, 6, 8, 12]
+# }
 catboost_params = {'eval_metric': ['RMSE','MAPE'],
                    'iterations': range(500, 1000, 250),
                    'depth': [4, 6, 8, 12]
@@ -375,18 +389,22 @@ best_models = hyperparameter_optimization_rmse(X_train, y_train, scoring='neg_ro
 
 
 best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=300)
-
+best_catboost_model = CatBoostRegressor(depth=8,eval_metric='RMSE',iterations=750)
 
 best_xgb_model.fit(X_train,y_train)
+best_catboost_model.fit(X_train, y_train)
 y_pred = best_xgb_model.predict(X_test)
+y_pred = best_catboost_model.predict(X_test)
 
 mse = mean_squared_error(y_test, y_pred, squared=False) #rmse hesabı
 print("Root Mean Squared Error:", mse)
 # Mean Squared Error: 0.10400572469934198
+# CatBoost: Root Mean Squared Error: 0.10100101816263003
 
 mae = mean_absolute_error(y_test, y_pred)
 print('Mean Absolute Error:',mae)
 # Mean Absolute Error: 0.08132177375680566
+# CatBoost: Mean Absolute Error: 0.07879955768575692
 
 
 #---------------------------------------------Aşağısı çalışma halinde !-----------------------------------
@@ -397,7 +415,7 @@ y_pred_ind = pd.DataFrame(col2, index=col1)
 top_200 = y_pred_ind.sort_values(by=0).tail(200).index
 y_test.sort_values()
 
-random_50_tracks_ind = random.sample(top_200, 50)
+random_50_tracks_ind = random.sample(top_200, 50) #XXXTBD
 
 # y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
 #
@@ -406,8 +424,8 @@ random_50_tracks = [df_.iloc[indd] for indd in random_50_tracks_ind]
 
 random_50_tracks_ids = [track['track_id'] for track in random_50_tracks]
 random_50_tracks_ids
-client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD sil bunu
-client_secret = '06be59d53c2447069aa59f76ad41ee52'
+client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD
+client_secret = .env.client_secret #XXXTBD
 
 def spotipy_add_playlist(inp_client_id,
                          inp_client_secret,
@@ -442,32 +460,38 @@ def spotipy_add_playlist(inp_client_id,
 spotipy_add_playlist(client_id, client_secret)
 
 #- GRADIO WEB APP - INWORK --------------------------------------------------------------------------------------
-import gradio as gr
 
-def greet_user(spotify_userid, client_id, client_secret):
+def gradio_webapp(spotify_userid, client_id, client_secret):
     try:
-
+        if __name__ == "__main__":
+            main()
         return "Hello " + spotify_userid + (" The ML Dance Playlist has been created: \n\t"+str(playlist_name))
     except:
         return "There was an error, the playlist has not been created."
 
-# app = gr.Interface(fn = greet_user, inputs="text", outputs="text")
-app = gr.Interface(fn=greet_user, inputs=["text", "text"], outputs="text")
+
+app = gr.Interface(fn = greet_user, inputs="text", outputs="text")
 
 app.launch()
 
 
 # - ML PIPELINE ------------------------------------------------------------------------
 def main():
-    df = pd.read_csv("3 - Measurement_Problems/datasets/diabetes.csv")
-    X, y = diabetes_data_prep(df)
-    base_models(X, y)
-    best_models = hyperparameter_optimization(X, y)
-    voting_clf = voting_classifier(best_models, X, y)
-    joblib.dump(voting_clf, "voting_clf.pkl")
-    return voting_clf
 
-def spotify_danceability_prepreocess(df):
+    df = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+    X, y = spotify_danceability_preprocess(df)
+    # base_models(X, y)
+    best_models = hyperparameter_optimization(X, y)
+    best_model = best_models['CatBoost']
+
+    gradio_webapp(spotify_userid, client_id, client_secret, best_model)
+
+    app = gr.Interface(fn=gradio_webapp, inputs=["text", "text"], outputs="text")
+    app.launch()
+
+    return
+
+def spotify_danceability_preprocess(df):
     df = df[df.track_genre != 'kids']
 
     df = df[df.track_genre != 'children']
@@ -541,11 +565,8 @@ def spotify_danceability_prepreocess(df):
     for col in cat_but_car:
         X.drop([col], axis=1, inplace=True)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-    return df
+    return X, y
 
 if __name__ == "__main__":
-    print("işlem Başladı")
     main()
 

@@ -37,6 +37,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import random
+from datetime import datetime
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -396,23 +397,20 @@ y_pred_ind = pd.DataFrame(col2, index=col1)
 top_200 = y_pred_ind.sort_values(by=0).tail(200).index
 y_test.sort_values()
 
-random_50_tracks_ind = random.choices(top_200, k=50)
-np.max(random_50_tracks_ind)
-np.min(random_50_tracks_ind)
-y_pred[14320]
-y_test[14320]
+random_50_tracks_ind = random.sample(top_200, 50)
 
-y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
-df[df.index==94275]
-df[df.index==top_200]
-random_50_tracks = df.iloc[random_50_tracks_ind[1]]
-random_50_tracks = [df.iloc[indd] for indd in random_50_tracks_ind]
+# y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
+#
+# random_50_tracks = df.iloc[random_50_tracks_ind[1]]
+random_50_tracks = [df_.iloc[indd] for indd in random_50_tracks_ind]
 
-spotipy_add_playlist()
+random_50_tracks_ids = [track['track_id'] for track in random_50_tracks]
+random_50_tracks_ids
+client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD sil bunu
+client_secret = '06be59d53c2447069aa59f76ad41ee52'
 
-
-def spotipy_add_playlist(client_id,
-                         playlist_name,
+def spotipy_add_playlist(inp_client_id,
+                         inp_client_secret,
                          username_id = 11124005204,
                          inp_scope="playlist-modify-public playlist-modify-private"):
     """
@@ -420,24 +418,134 @@ def spotipy_add_playlist(client_id,
     :return:
     """
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="client_id",
-                                                   client_secret="client_secret",
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=inp_client_id,
+                                                   client_secret= inp_client_secret,
                                                    redirect_uri='https://open.spotify.com/',
                                                    scope=inp_scope))
 
-    playlist_name = "ML Dance Playlist"
+    hour_now = datetime.now().hour
+    minute_now = datetime.now().minute
+    playlist_name = "ML Dance Playlist "+str(hour_now)+"_"+str(minute_now)+"_time"
     playlist_description = "This is my new Dance playlist"
+
     playlist = sp.user_playlist_create(user=username_id, name=playlist_name, public=True,
                                        description=playlist_description)
 
     # Add tracks to the playlist
     # track_uris = ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:2takcwOaAZWiXQijPHIx7B"]
-    track_uris =
-    for track in track_id_list:
-        track_uris.append("spotify:track:"+str(track_id))
+    track_uris = random_50_tracks_ids
 
     sp.playlist_add_items(playlist_id=playlist["id"], items=track_uris)
 
     return
 
+spotipy_add_playlist(client_id, client_secret)
+
+#- GRADIO WEB APP - INWORK --------------------------------------------------------------------------------------
+import gradio as gr
+
+def greet_user(spotify_userid, client_id, client_secret):
+    try:
+
+        return "Hello " + spotify_userid + (" The ML Dance Playlist has been created: \n\t"+str(playlist_name))
+    except:
+        return "There was an error, the playlist has not been created."
+
+# app = gr.Interface(fn = greet_user, inputs="text", outputs="text")
+app = gr.Interface(fn=greet_user, inputs=["text", "text"], outputs="text")
+
+app.launch()
+
+
+# - ML PIPELINE ------------------------------------------------------------------------
+def main():
+    df = pd.read_csv("3 - Measurement_Problems/datasets/diabetes.csv")
+    X, y = diabetes_data_prep(df)
+    base_models(X, y)
+    best_models = hyperparameter_optimization(X, y)
+    voting_clf = voting_classifier(best_models, X, y)
+    joblib.dump(voting_clf, "voting_clf.pkl")
+    return voting_clf
+
+def spotify_danceability_prepreocess(df):
+    df = df[df.track_genre != 'kids']
+
+    df = df[df.track_genre != 'children']
+
+    df = df[df.track_genre != 'study']
+
+    df.track_genre.unique()
+
+    outcome = 'danceability'
+
+    df['time_signature'].unique()
+
+    df.drop("explicit", axis=1, inplace=True)
+
+    df.drop("Unnamed: 0", axis=1, inplace=True)
+
+    df['time_signature'] = df['time_signature'].replace({0: 6, 1: 7})
+
+    df.drop(65900, axis=0, inplace=True)
+
+    duplicated_rows = df[df.duplicated(subset=['track_id'])]
+    df = df.drop(duplicated_rows.index)
+
+    duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name", "track_name"])]
+    df = df.drop(duplicated_rows.index)
+
+    duplicated_rows = df[df.duplicated(subset=['track_id', "track_name"])]
+    df = df.drop(duplicated_rows.index)
+
+    duplicated_rows = df[df.duplicated(subset=['track_id', 'artists', "album_name"])]
+    df = df.drop(duplicated_rows.index)
+
+    duplicated_rows = df[df.duplicated(subset=['popularity', 'duration_ms', "danceability", "energy", "key", "loudness",
+                                               "mode", "speechiness", "acousticness", "instrumentalness", "liveness",
+                                               "valence", "tempo", "time_signature"])]
+
+    df = df.drop(duplicated_rows.index)
+
+    cat_cols, num_cols, cat_but_car = grab_col_names(df)
+
+    num_cols.remove(outcome)
+
+    for col in num_cols:
+        replace_with_thresholds(df, col)
+
+    df.style.set_properties(**{'text-align': 'center'})
+    df.head()
+
+    df = pd.get_dummies(df, columns=["key"], drop_first=True)
+    df[['key_1', 'key_2', 'key_3', 'key_4', 'key_5', 'key_6', 'key_7', 'key_8', 'key_9', 'key_10', 'key_11']] = \
+        df[['key_1', 'key_2', 'key_3', 'key_4', 'key_5', 'key_6', 'key_7', 'key_8', 'key_9', 'key_10',
+            'key_11']].astype(int)
+
+    df = pd.get_dummies(df, columns=["time_signature"], drop_first=True)
+    df[['time_signature_4', 'time_signature_5', 'time_signature_6', 'time_signature_7']] = \
+        df[['time_signature_4', 'time_signature_5', 'time_signature_6', 'time_signature_7']].astype(int)
+
+    model_cols = [col for col in df.columns if col not in cat_but_car]
+
+    # Standartlaştırma
+    X_scaled = StandardScaler().fit_transform(df[num_cols])
+    temp_df = df.copy()
+    temp_df[num_cols] = pd.DataFrame(X_scaled, columns=num_cols, index=df[num_cols].index)
+    df = temp_df.copy()
+
+    y = df[outcome]
+
+    X = df.copy()
+    X.drop([outcome], axis=1, inplace=True)
+
+    for col in cat_but_car:
+        X.drop([col], axis=1, inplace=True)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    return df
+
+if __name__ == "__main__":
+    print("işlem Başladı")
+    main()
 

@@ -423,7 +423,7 @@ random_50_tracks_ind = random.sample(top_200, 50) #XXXTBD
 random_50_tracks = [df_.iloc[indd] for indd in random_50_tracks_ind]
 
 random_50_tracks_ids = [track['track_id'] for track in random_50_tracks]
-random_50_tracks_ids
+
 client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD
 client_secret = .env.client_secret #XXXTBD
 

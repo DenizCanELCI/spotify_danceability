@@ -192,7 +192,7 @@ def num_summary(dataframe, numerical_col, plot=False):
         plt.title(numerical_col)
         plt.show(block=True)
 
-
+num_cols.append('popularity')
 for col in num_cols:
     num_summary(df, col)
 
@@ -213,7 +213,7 @@ def correlation_matrix(df, cols):
     fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={"size": 12}, linecolor="w", cmap="RdBu")
     plt.show(block=True)
 
-
+num_cols.append('popularity')
 correlation_matrix(df, num_cols)
 
 #######################################################################
@@ -347,15 +347,15 @@ lightgbm_params = {'learning_rate': [0.01, 0.1, 0.3],
 #                    'iterations': range(500, 1000, 250),
 #                    'depth': [4, 6, 8, 12]
 # }
-catboost_params = {'eval_metric': ['RMSE','MAPE'],
+catboost_params = {
                    'iterations': range(500, 1000, 250),
-                   'depth': [4, 6, 8, 12]
+                   'depth': [6, 8, 12]
 }
 
 
 regressors_hpo = [
-    ("XGBoost", XGBRegressor(), xgboost_params),
-    ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params),
+    # ("XGBoost", XGBRegressor(), xgboost_params),
+    # ("LightGBM", LGBMRegressor(verbose=-1), lightgbm_params)#
     ("CatBoost", CatBoostRegressor(verbose=False), catboost_params)
 ]
 
@@ -386,14 +386,18 @@ best_models = hyperparameter_optimization_rmse(X_train, y_train, scoring='neg_ro
 #neg_root_mean_squared_error (Before):  0.1052
 #neg_root_mean_squared_error (After): 0.1042
 #XGBoost best params: {'learning_rate': 0.1, 'max_depth': 10, 'n_estimators': 300}
+########## LightGBM ##########
+# neg_root_mean_squared_error (Before):  0.1067
+# neg_root_mean_squared_error (After): 0.1068
+# LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 70}
 
 
-best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=300)
-best_catboost_model = CatBoostRegressor(depth=8,eval_metric='RMSE',iterations=750)
+# best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=300)
+best_catboost_model = CatBoostRegressor(depth=8,iterations=750)
 
-best_xgb_model.fit(X_train,y_train)
+# best_xgb_model.fit(X_train,y_train)
 best_catboost_model.fit(X_train, y_train)
-y_pred = best_xgb_model.predict(X_test)
+# y_pred = best_xgb_model.predict(X_test)
 y_pred = best_catboost_model.predict(X_test)
 
 mse = mean_squared_error(y_test, y_pred, squared=False) #rmse hesabı
@@ -413,20 +417,24 @@ col2 = y_pred
 y_pred_ind = pd.DataFrame(col2, index=col1)
 
 top_200 = y_pred_ind.sort_values(by=0).tail(200).index
-y_test.sort_values()
 
-random_50_tracks_ind = random.sample(top_200, 50) #XXXTBD
+top_50 = y_pred_ind.sort_values(by=0).tail(50).index
+
+random_50_tracks_ind = random.sample(list(top_200), 50) #XXXTBD
 
 # y_prd_most = best_xgb_model.predict(pd.DataFrame(X[X.index==66808]))
 #
 # random_50_tracks = df.iloc[random_50_tracks_ind[1]]
 random_50_tracks = [df_.iloc[indd] for indd in random_50_tracks_ind]
-
 random_50_tracks_ids = [track['track_id'] for track in random_50_tracks]
 
-client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD
-client_secret = .env.client_secret #XXXTBD
+top_50_tracks = [df_.iloc[indd] for indd in top_50]
+top_50_tracks_ids = [track['track_id'] for track in top_50_tracks]
 
+client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD
+client_secret = 'fe46f9a3af154e59a79d88818104e99b' #XXXTBD
+
+df_[df_['track_id'] == top_50_tracks_ids[7]]
 def spotipy_add_playlist(inp_client_id,
                          inp_client_secret,
                          username_id = 11124005204,
@@ -451,7 +459,8 @@ def spotipy_add_playlist(inp_client_id,
 
     # Add tracks to the playlist
     # track_uris = ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:2takcwOaAZWiXQijPHIx7B"]
-    track_uris = random_50_tracks_ids
+    # track_uris = random_50_tracks_ids
+    track_uris = top_50_tracks_ids
 
     sp.playlist_add_items(playlist_id=playlist["id"], items=track_uris)
 

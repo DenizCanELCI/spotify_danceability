@@ -192,7 +192,6 @@ def num_summary(dataframe, numerical_col, plot=False):
         plt.title(numerical_col)
         plt.show(block=True)
 
-num_cols.append('popularity')
 for col in num_cols:
     num_summary(df, col)
 
@@ -246,8 +245,6 @@ def check_outlier(dataframe, col_name):
 
 
 ####################################################################################################################
-
-
 
 for col in num_cols:
     print(col, ":", check_outlier(df, col))
@@ -349,7 +346,7 @@ lightgbm_params = {'learning_rate': [0.01, 0.1, 0.3],
 # }
 catboost_params = {
                    'iterations': range(500, 1000, 250),
-                   'depth': [6, 8, 12]
+                   'depth': [8, 12]
 }
 
 
@@ -390,9 +387,11 @@ best_models = hyperparameter_optimization_rmse(X_train, y_train, scoring='neg_ro
 # neg_root_mean_squared_error (Before):  0.1067
 # neg_root_mean_squared_error (After): 0.1068
 # LightGBM best params: {'learning_rate': 0.3, 'max_depth': 8, 'n_estimators': 70}
+########## CatBoost ##########
+# neg_root_mean_squared_error (Before):  0.1032
+# neg_root_mean_squared_error (After): 0.1024
+# CatBoost best params: {'depth': 8, 'iterations': 750}
 
-
-# best_xgb_model = XGBRegressor(learning_rate=0.1,max_depth=10,n_estimators=300)
 best_catboost_model = CatBoostRegressor(depth=8,iterations=750)
 
 # best_xgb_model.fit(X_train,y_train)
@@ -432,7 +431,7 @@ top_50_tracks = [df_.iloc[indd] for indd in top_50]
 top_50_tracks_ids = [track['track_id'] for track in top_50_tracks]
 
 client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD
-client_secret = 'fe46f9a3af154e59a79d88818104e99b' #XXXTBD
+client_secret = 'SECRET' #XXXTBD
 
 df_[df_['track_id'] == top_50_tracks_ids[7]]
 def spotipy_add_playlist(inp_client_id,
@@ -490,12 +489,16 @@ def main():
     df = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
     X, y = spotify_danceability_preprocess(df)
     # base_models(X, y)
-    best_models = hyperparameter_optimization(X, y)
-    best_model = best_models['CatBoost']
+    # best_models = hyperparameter_optimization(X, y)
+    # best_model = best_models['CatBoost']
+    best_model = CatBoostRegressor(depth=8,iterations=750)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    y_pred = #XXXTBD
 
     gradio_webapp(spotify_userid, client_id, client_secret, best_model)
 
-    app = gr.Interface(fn=gradio_webapp, inputs=["text", "text"], outputs="text")
+    app = gr.Interface(fn=gradio_webapp, inputs=["text", "text", "text"], outputs="text")
     app.launch()
 
     return
@@ -576,6 +579,11 @@ def spotify_danceability_preprocess(df):
 
     return X, y
 
+def y_guesses():
+
+
+
+    return y_pred_out
 if __name__ == "__main__":
     main()
 

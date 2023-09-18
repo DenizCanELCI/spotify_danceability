@@ -39,9 +39,16 @@ from spotipy.oauth2 import SpotifyOAuth
 import random
 from datetime import datetime
 import gradio as gr
-def main(): #XXXTBD Static Pipeline, hyperparameter optimization is done already.
+import random
 
-    df = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+def main(): #XXXTBD Static Pipeline, hyperparameter optimization is done already.
+    TWO_HUNDRED = 200.
+    # from .env import spotify_username_id
+    # from .env import client_id
+    # from .env import client_secret
+
+    df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+    df = df_.copy()
     X, y = spotify_danceability_preprocess(df)
     # base_models(X, y)
     # best_models = hyperparameter_optimization(X, y)
@@ -49,16 +56,96 @@ def main(): #XXXTBD Static Pipeline, hyperparameter optimization is done already
     best_model = CatBoostRegressor(depth=8,iterations=750)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    y_pred = y_guesses(X_train, X_test, y_train, y_test, best_model)
+    y_pred = y_guesses(X_train, y_train, X, best_model)
 
-    top_200_getter(y_test)
+    top_200_ind = top_200_getter(y, y_pred)
 
-    gradio_webapp(spotify_userid, client_id, client_secret, best_model)
+    num_of_tracks = 50 #XXXTBD make it dynamic
+    global rand_track_ids
+    rand_tracks_ids = random_tracks_getter(top_200_ind, num_of_tracks, TWO_HUNDRED, df_, randomm=True)
+
+    spotify_username_id = 11124005204
+    client_id = "6971c2e01ef4463186ce3b0523ece0cd"
+    client_secret = "SECRET"
+
+    gradio_webapp(spotify_username_id, client_id, client_secret)
 
     app = gr.Interface(fn=gradio_webapp, inputs=["text", "text", "text"], outputs="text")
+
     app.launch()
 
     return
+
+def grab_col_names(df, cat_th=13, car_th=20):
+    """
+    Veri setindeki kategorik, numerik ve kategorik fakat kardinal değişkenlerin isimlerini verir.
+
+    Parameters
+    ----------
+    dataframe: dataframe
+        değişken isimleri alınmak istenen dataframe'dir.
+    cat_th: int, float
+        numerik fakat kategorik olan değişkenler için sınıf eşik değeri
+    car_th: int, float
+        kategorik fakat kardinal değişkenler için sınıf eşik değeri
+
+    Returns
+    -------
+    cat_cols: list
+        Kategorik değişken listesi
+    num_cols: list
+        Numerik değişken listesi
+    cat_but_car: list
+        Kategorik görünümlü kardinal değişken listesi
+
+    Notes
+    ------
+    cat_cols + num_cols + cat_but_car = toplam değişken sayısı
+    num_but_cat cat_cols'un içerisinde.
+
+    """
+    # cat_cols, cat_but_car
+    cat_cols = [col for col in df.columns if str(df[col].dtypes) in ["category", "object", "bool"]]
+
+    num_but_cat = [col for col in df.columns if df[col].nunique() < cat_th and df[col].dtypes in ["int", "float"]]
+
+    cat_but_car = [col for col in df.columns if
+                   df[col].nunique() > car_th and str(df[col].dtypes) in ["category", "object"]]
+
+    cat_cols = cat_cols + num_but_cat
+    cat_cols = [col for col in cat_cols if col not in cat_but_car]
+
+    num_cols = [col for col in df.columns if df[col].dtypes in ["int", "float"]]
+    num_cols = [col for col in num_cols if col not in cat_cols]
+
+    # print(f"Observations: {df.shape[0]}")
+    # print(f"Variables: {df.shape[1]}")
+    # print(f'cat_cols: {len(cat_cols)}')
+    # print(f'num_cols: {len(num_cols)}')
+    # print(f'cat_but_car: {len(cat_but_car)}')
+    # print(f'num_but_cat: {len(num_but_cat)}')
+
+    return cat_cols, num_cols, cat_but_car
+
+def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
+    quartile1 = dataframe[col_name].quantile(q1)
+    quartile3 = dataframe[col_name].quantile(q3)
+    interquantile_range = quartile3 - quartile1
+    up_limit = quartile3 + 1.5 * interquantile_range
+    low_limit = quartile1 - 1.5 * interquantile_range
+    return low_limit, up_limit
+
+def replace_with_thresholds(dataframe, variable):
+    low_limit, up_limit = outlier_thresholds(dataframe, variable)
+    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
+    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+
+def check_outlier(dataframe, col_name):
+    low_limit, up_limit = outlier_thresholds(dataframe, col_name)
+    if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
+        return True
+    else:
+        return False
 
 def spotify_danceability_preprocess(df):
     df = df[df.track_genre != 'kids']
@@ -136,24 +223,24 @@ def spotify_danceability_preprocess(df):
 
     return X, y
 
-def y_guesses(X_train, X_test, y_train, best_model):
+def y_guesses(X_train, y_train, X, best_model):
 
     best_model.fit(X_train,y_train)
 
-    y_pred_out = best_catboost_model.predict(X_test)
+    y_pred_out = best_model.predict(X) #XXXTBD
 
     return y_pred_out
 
-def top_200_getter(y_test):
-    col1 = list(y_test.index)
+def top_200_getter(y, y_pred):
+    col1 = list(y.index)
     col2 = y_pred
     y_pred_ind = pd.DataFrame(col2, index=col1)
-    top_200 = y_pred_ind.sort_values(by=0).tail(200).index
+    top_200_ind = y_pred_ind.sort_values(by=0).tail(200).index
 
-    return top_200
+    return top_200_ind
 
 
-def random_tracks_getter(top_200, num_of_tracks, random=True):
+def random_tracks_getter(top_200, num_of_tracks, TWO_HUNDRED, df_, randomm=True):
     if random:
         if num_of_tracks <= TWO_HUNDRED:
             random_n_tracks_ind = random.sample(list(top_200), num_of_tracks)
@@ -163,14 +250,62 @@ def random_tracks_getter(top_200, num_of_tracks, random=True):
         else:
             random_n_tracks_ind = top_200
 
-    random_50_tracks = [df_.iloc[indd] for indd in random_n_tracks_ind]
-    random_50_tracks_ids = [track['track_id'] for track in random_50_tracks]
-
-    random_tracks = [df_.iloc[indd] for indd in top_50]
+    random_tracks = [df_.iloc[indd] for indd in random_n_tracks_ind]
     rand_tracks_ids = [track['track_id'] for track in random_tracks]
 
     return rand_tracks_ids
 
+def spotipy_add_playlist(username_id,
+                         inp_client_id,
+                         inp_client_secret,
+                         tracks_ids,
+                         inp_scope="playlist-modify-public playlist-modify-private"):
+    """
+    :param username_id:
+    :return:
+    """
+
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=inp_client_id,
+                                                   client_secret= inp_client_secret,
+                                                   redirect_uri='https://open.spotify.com/',
+                                                   scope=inp_scope))
+
+    hour_now = datetime.now().hour
+    minute_now = datetime.now().minute
+    playlist_name = "ML Dance Playlist "+str(hour_now)+"_"+str(minute_now)+"_time"
+    playlist_description = "This is my new Dance playlist"
+
+    # import sys
+    # sys.exit('username_id = '+str(username_id)+'\n type(username_id) = '+str(type(username_id))
+    #          +'\ninp_client_id = '+str(inp_client_id)+'\n type(inp_client_id) = '+str(type(inp_client_id))
+    #          +'\n inp_client_secret = '+str(inp_client_secret)
+    #          +'\n type(inp_client_secret) = '+str(type(inp_client_secret)))
+    # raise ValueError('A very specific bad thing happened.    '+str(sp))
+    playlist = sp.user_playlist_create(user=username_id, name=playlist_name, public=True,
+                                       description=playlist_description)
+
+    # Add tracks to the playlist
+    # track_uris = ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:2takcwOaAZWiXQijPHIx7B"]
+    # track_uris = random_50_tracks_ids
+
+    sp.playlist_add_items(playlist_id=playlist["id"], items=tracks_ids)
+
+    return
+
+def gradio_webapp(spotify_userid, client_id, client_secret):
+    rand_track_ids = ['7aXqWBIvrtmKZX90Jq5sxO', '4cdCTVjFGCOxwhIOBAgY6O', \
+                      '2pg8ytdwFmXKjSlpHEV5QC', '1FRJdOTOVML0UM4PUkuDcl']
+    spotipy_add_playlist(int(spotify_userid), client_id, client_secret, rand_track_ids)
+    return "Hello " + spotify_userid + (" The ML Dance Playlist has been created: \n\t" + str(playlist_name))
+    # try:
+    #     # if __name__ == "__main__":
+    #     #     main()
+    #
+    # except:
+    #     return "There was an error, the playlist has not been created.\n"+str(spotify_userid)+ \
+    #         '\nclient_id = '+str(client_id)+'\nclient_secret = '+str(client_secret)+'\n type(spotify_userid) = '+ \
+    #         str(type(spotify_userid))+'\ntype(client_id) = '+str(type(client_id))+ \
+    #         '\ntype(client_secret) = ' + str(type(client_secret))
 
 if __name__ == "__main__":
     print("Pipeline has started!!")

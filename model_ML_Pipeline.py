@@ -23,38 +23,38 @@ track_genre: The genre in which the track belongs
 """
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.model_selection import cross_validate, GridSearchCV
-from sklearn.linear_model import LinearRegression
-from sklearn.neighbors import KNeighborsRegressor
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
-from catboost import CatBoostRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+# from sklearn.model_selection import cross_validate, GridSearchCV
+# from sklearn.linear_model import LinearRegression
+# from sklearn.neighbors import KNeighborsRegressor
+# from xgboost import XGBRegressor
+# from lightgbm import LGBMRegressor
+import catboost
+import sklearn
+from sklearn import model_selection
+# from sklearn.metrics import mean_squared_error, mean_absolute_error
+# from spotipy import Spotify as Spotify_func
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-import random
 from datetime import datetime
 import gradio as gr
 import random
+from sklearn import preprocessing
 
 def main(): #XXXTBD Static Pipeline, hyperparameter optimization is done already.
-    TWO_HUNDRED = 200.
+    TWO_HUNDRED = 200
     # from .env import spotify_username_id
     # from .env import client_id
     # from .env import client_secret
 
-    df_ = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
+    df_ = pd.read_csv('dataset.csv')
     df = df_.copy()
     X, y = spotify_danceability_preprocess(df)
     # base_models(X, y)
     # best_models = hyperparameter_optimization(X, y)
     # best_model = best_models['CatBoost']
-    best_model = CatBoostRegressor(depth=8,iterations=750)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    best_model = catboost.CatBoostRegressor(depth=8,iterations=750)
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.2)
 
     y_pred = y_guesses(X_train, y_train, X, best_model)
 
@@ -63,12 +63,12 @@ def main(): #XXXTBD Static Pipeline, hyperparameter optimization is done already
     num_of_tracks = 50 #XXXTBD make it dynamic
     global rand_track_ids
     rand_tracks_ids = random_tracks_getter(top_200_ind, num_of_tracks, TWO_HUNDRED, df_, randomm=True)
-
-    spotify_username_id = 11124005204
-    client_id = "6971c2e01ef4463186ce3b0523ece0cd"
-    client_secret = "SECRET"
-
-    gradio_webapp(spotify_username_id, client_id, client_secret)
+    def gradio_webapp(spotify_userid, client_id, client_secret, playlist_name, track_ids):
+        # rand_track_ids = ['7aXqWBIvrtmKZX90Jq5sxO', '4cdCTVjFGCOxwhIOBAgY6O', \
+        #                   '2pg8ytdwFmXKjSlpHEV5QC', '1FRJdOTOVML0UM4PUkuDcl']
+        playlist_name = spotipy_add_playlist(int(spotify_userid), client_id, client_secret, rand_tracks_ids)
+        return "Hello " + str(spotify_userid) + (" The ML Dance Playlist has been created: \n\t") + \
+            str(playlist_name)
 
     app = gr.Interface(fn=gradio_webapp, inputs=["text", "text", "text"], outputs="text")
 
@@ -208,7 +208,7 @@ def spotify_danceability_preprocess(df):
     model_cols = [col for col in df.columns if col not in cat_but_car]
 
     # Standartlaştırma
-    X_scaled = StandardScaler().fit_transform(df[num_cols])
+    X_scaled = preprocessing.StandardScaler().fit_transform(df[num_cols])
     temp_df = df.copy()
     temp_df[num_cols] = pd.DataFrame(X_scaled, columns=num_cols, index=df[num_cols].index)
     df = temp_df.copy()
@@ -241,7 +241,7 @@ def top_200_getter(y, y_pred):
 
 
 def random_tracks_getter(top_200, num_of_tracks, TWO_HUNDRED, df_, randomm=True):
-    if random:
+    if randomm:
         if num_of_tracks <= TWO_HUNDRED:
             random_n_tracks_ind = random.sample(list(top_200), num_of_tracks)
     else: #random=False
@@ -265,7 +265,7 @@ def spotipy_add_playlist(username_id,
     :return:
     """
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=inp_client_id,
+    sp = spotipy.Spotify(auth_manager=spotipy.oauth2.SpotifyOAuth(client_id=inp_client_id,
                                                    client_secret= inp_client_secret,
                                                    redirect_uri='https://open.spotify.com/',
                                                    scope=inp_scope))
@@ -290,23 +290,12 @@ def spotipy_add_playlist(username_id,
 
     sp.playlist_add_items(playlist_id=playlist["id"], items=tracks_ids)
 
-    return
+    return playlist_name
 
-def gradio_webapp(spotify_userid, client_id, client_secret):
-    rand_track_ids = ['7aXqWBIvrtmKZX90Jq5sxO', '4cdCTVjFGCOxwhIOBAgY6O', \
-                      '2pg8ytdwFmXKjSlpHEV5QC', '1FRJdOTOVML0UM4PUkuDcl']
-    spotipy_add_playlist(int(spotify_userid), client_id, client_secret, rand_track_ids)
-    return "Hello " + spotify_userid + (" The ML Dance Playlist has been created: \n\t" + str(playlist_name))
-    # try:
-    #     # if __name__ == "__main__":
-    #     #     main()
-    #
-    # except:
-    #     return "There was an error, the playlist has not been created.\n"+str(spotify_userid)+ \
-    #         '\nclient_id = '+str(client_id)+'\nclient_secret = '+str(client_secret)+'\n type(spotify_userid) = '+ \
-    #         str(type(spotify_userid))+'\ntype(client_id) = '+str(type(client_id))+ \
-    #         '\ntype(client_secret) = ' + str(type(client_secret))
+
 
 if __name__ == "__main__":
     print("Pipeline has started!!")
     main()
+
+

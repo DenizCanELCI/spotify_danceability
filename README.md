@@ -14,9 +14,9 @@ Creation of dummy Spotify project (Will be done only once!):
   
 How to run (on Windows):
   1 - Install dependencies as written below in "Installation"Ç
-     pip install -r requirements.txt on command line
-  2 - Run "model_ML_Pipeline.py" from commandline
-  3 - On command line there is a local address that web app tuns on your machine, click on it to open app.
-  4 - Enter your spotify userid, client id (from dummy Spotify project) and client secret (from dummy Spotify project) to web app as inputs and hit 'Submit'
-  5 - Web app runs and gives you the output sucj as "Hello 99999999999 The ML Dance Playlist has been created: 
-	ML Dance Playlist 14_48_time".
+     pip install -r requirements.txt on command line \n
+  2 - Run "model_ML_Pipeline.py" from commandline \n
+  3 - On command line there is a local address that web app tuns on your machine, click on it to open app. \n
+  4 - Enter your spotify userid, client id (from dummy Spotify project) and client secret (from dummy Spotify project) to web app as inputs and hit 'Submit' \n
+  5 - Web app runs and gives you the output sucj as "Hello 99999999999 The ML Dance Playlist has been created:  \n
+	ML Dance Playlist 14_48_time". \n

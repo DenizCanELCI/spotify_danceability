@@ -18,9 +18,9 @@
   2. Run "model_ML_Pipeline.py" from commandline \n
   3. On command line there is a local address that web app tuns on your machine, click on it to open app. \
   5. Enter your spotify userid, client id (from dummy Spotify project) and client secret (from dummy Spotify project) to web app as inputs and hit 'Submit' \n
-  5.1 To get your spotify user id: \n
+  6. To get your spotify user id: \n
 	From "https://open.spotify.com/" ron top right click on "Account". \n
 	On the new tab  click "Edit profile" and there you have your user id! \n
 	 
-  6. Web app runs and gives you the output sucj as "Hello 99999999999 The ML Dance Playlist has been created:  \n
+  7. Web app runs and gives you the output sucj as "Hello 99999999999 The ML Dance Playlist has been created:  \n
 	ML Dance Playlist 14_48_time". \n

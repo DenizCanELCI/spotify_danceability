@@ -13,7 +13,7 @@
   TThe link explaining it: https://www.codeproject.com/Tips/5276627/HowTo-Setup-a-Spotify-API-App-in-the-Spotify-Devel
   
 ### How to run (on Windows):
-  1. Install dependencies as written below in "Installation"Ç
+  1. Install dependencies as written below in "Installation"
      pip install -r requirements.txt on command line \n
   2. Run "model_ML_Pipeline.py" from commandline \n
   3. On command line there is a local address that web app tuns on your machine, click on it to open app. \

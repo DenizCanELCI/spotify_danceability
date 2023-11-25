@@ -14,13 +14,13 @@
   
 ### How to run (on Windows):
   1. Install dependencies as written below in "Installation"
-     pip install -r requirements.txt on command line \n
-  2. Run "model_ML_Pipeline.py" from commandline \n
+     pip install -r requirements.txt on command line <br>
+  2. Run "model_ML_Pipeline.py" from commandline <br>
   3. On command line there is a local address that web app tuns on your machine, click on it to open app. \
   5. Enter your spotify userid, client id (from dummy Spotify project above) and client secret (again from dummy Spotify project above) to web app as inputs and hit 'Submit' \n
-  6. To get your spotify user id: \n
-	From "https://open.spotify.com/" ron top right click on "Account". \n
-	On the new tab  click "Edit profile" and there you have your user id! \n
+  6. To get your spotify user id: <br>
+	From "https://open.spotify.com/" on top right click on "Account". <br>
+	On the new tab  click "Edit profile" and there you have your user id! <br>
 	 
-  7. Web app runs and gives you the output as "Hello 12345678912 The ML Dance Playlist has been created:  \n
-	ML Dance Playlist 14_48_time". \n
+  7. Web app runs and gives you the output as "Hello 12345678912 The ML Dance Playlist has been created:  <br>
+	ML Dance Playlist 14_48_time". <br>

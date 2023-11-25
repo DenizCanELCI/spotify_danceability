@@ -10,7 +10,7 @@
   pip install -r requirements.txt (works better on pycharm virtual environment!)
 
 ### Creation of dummy Spotify project (Will be done only once!):
-  TBD
+  TThe link explaining it: https://www.codeproject.com/Tips/5276627/HowTo-Setup-a-Spotify-API-App-in-the-Spotify-Devel
   
 ### How to run (on Windows):
   1. Install dependencies as written below in "Installation"Ç
@@ -22,5 +22,5 @@
 	From "https://open.spotify.com/" ron top right click on "Account". \n
 	On the new tab  click "Edit profile" and there you have your user id! \n
 	 
-  7. Web app runs and gives you the output sucj as "Hello 99999999999 The ML Dance Playlist has been created:  \n
+  7. Web app runs and gives you the output as "Hello 12345678912 The ML Dance Playlist has been created:  \n
 	ML Dance Playlist 14_48_time". \n

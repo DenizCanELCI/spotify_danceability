@@ -21,6 +21,8 @@ tempo: The overall estimated tempo of a track in beats per minute (BPM). In musi
 time_signature: An estimated time signature. The time signature (meter) is a notational convention to specify how many beats are in each bar (or measure). The time signature ranges from 3 to 7 indicating time signatures of 3/4, to 7/4.
 track_genre: The genre in which the track belongs
 """
+import os
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -411,11 +413,10 @@ print('Mean Absolute Error:',mae)
 
 
 #---------------------------------------------Aşağısı çalışma halinde !-----------------------------------
-col1 = list(y_test.index)
-col2 = y_pred
+col1 = list(y_test.index) #list of indexes for test tracks
+col2 = y_pred # predictions of dancebility for test tracks
 y_pred_ind = pd.DataFrame(col2, index=col1)
-
-top_200 = y_pred_ind.sort_values(by=0).tail(200).index
+top_200 = y_pred_ind.sort_values(by=0).tail(200).index #top 200 for test tracks!!!!!!!
 
 top_50 = y_pred_ind.sort_values(by=0).tail(50).index
 
@@ -431,7 +432,8 @@ top_50_tracks = [df_.iloc[indd] for indd in top_50]
 top_50_tracks_ids = [track['track_id'] for track in top_50_tracks]
 
 client_id = '1cc97646ee854447944864d5e0eb3ab8' #XXXTBD
-client_secret = 'SECRET' #XXXTBD
+client_secret = '6971c2e01ef4463186ce3b0523ece0cd' #XXXTBD
+spotify_userid = 11124005204
 
 df_[df_['track_id'] == top_50_tracks_ids[7]]
 def spotipy_add_playlist(inp_client_id,
@@ -455,7 +457,12 @@ def spotipy_add_playlist(inp_client_id,
 
     playlist = sp.user_playlist_create(user=username_id, name=playlist_name, public=True,
                                        description=playlist_description)
-
+    import sys
+    print(username_id)
+    sys.exit('username_id = '+str(username_id)+'\n type(username_id) = '+str(type(username_id))
+             +'\ninp_client_id = '+str(inp_client_id)+'\n type(inp_client_id) = '+str(type(inp_client_id))
+             +'\n inp_client_secret = '+str(inp_client_secret)
+             +'\n type(inp_client_secret) = '+str(type(inp_client_secret)))
     # Add tracks to the playlist
     # track_uris = ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:2takcwOaAZWiXQijPHIx7B"]
     # track_uris = random_50_tracks_ids
@@ -484,7 +491,7 @@ app.launch()
 
 
 # - ML PIPELINE ------------------------------------------------------------------------
-def main():
+def main(): #XXXTBD Static Pipeline, hyperparameter optimization is done previously.
 
     df = pd.read_csv(r"D:\Users\hhhjk\pythonProject\spotify_danceability\dataset.csv")
     X, y = spotify_danceability_preprocess(df)
@@ -494,7 +501,7 @@ def main():
     best_model = CatBoostRegressor(depth=8,iterations=750)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    y_pred = #XXXTBD
+    # y_pred = #XXXTBD
 
     gradio_webapp(spotify_userid, client_id, client_secret, best_model)
 
@@ -581,9 +588,51 @@ def spotify_danceability_preprocess(df):
 
 def y_guesses():
 
-
-
     return y_pred_out
+
 if __name__ == "__main__":
     main()
 
+inp_client_id = '1cc97646ee854447944864d5e0eb3ab8'
+inp_client_secret = '6971c2e01ef4463186ce3b0523ece0cd'
+import spotipy
+inp_scope = 'playlist-modify-public playlist-modify-private'
+
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=inp_client_id,
+                                               client_secret= inp_client_secret,
+                                               redirect_uri='https://open.spotify.com/',
+                                               scope=inp_scope))
+
+from datetime import datetime
+hour_now = datetime.now().hour
+minute_now = datetime.now().minute
+playlist_name = "ML Dance Playlist " + str(hour_now) + "_" + str(minute_now) + "_time"
+playlist_description = "This is my new Dance playlist"
+username_id = 11124005204
+
+playlist = sp.user_playlist_create(user=username_id, name=playlist_name, public=True,
+                                   description=playlist_description)
+
+
+with open(r'D:\Users\hhhjk\pythonProject\spotify_danceability\denmme.txt', mode='r') as f1:
+    file_Str = f1.readlines()
+
+file_Str[0]
+
+new_lines = []
+for line in enumerate(file_Str):
+    print(f'line[1] = {line[1]}')
+    print(f'type(line) = {type(line)}')
+    new_line_ = line[1].split()
+    print(f'new_line_ = {new_line_[1]}')
+    new_lines.append(new_line_[0].strip() + '==' + str(new_line_[1].strip()))
+
+new_lines
+
+import os
+os.getcwd()
+os.chdir('D:\\Users\\hhhjk\\pythonProject\\spotify_danceability')
+with open('requirements.txt', mode='w') as req_txt:
+    for line_ in new_lines:
+        req_txt.write(line_+'\n')
+    print('yuppa')

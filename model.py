@@ -593,8 +593,8 @@ def y_guesses():
 if __name__ == "__main__":
     main()
 
-inp_client_id = '1cc97646ee854447944864d5e0eb3ab8'
-inp_client_secret = '6971c2e01ef4463186ce3b0523ece0cd'
+inp_client_id = '123123124123213123213'
+inp_client_secret = 'sdsd1adsdsadasdsdsdsds'
 import spotipy
 inp_scope = 'playlist-modify-public playlist-modify-private'
 

@@ -294,7 +294,6 @@ def create_spotify_project():
     #XXXTBD
     return
 
-
 if __name__ == "__main__":
     print("Pipeline has started!!")
     main()

@@ -43,9 +43,6 @@ from sklearn import preprocessing
 
 def main(): #XXXTBD Static Pipeline, hyperparameter optimization is done already.
     TWO_HUNDRED = 200
-    # from .env import spotify_username_id
-    # from .env import client_id
-    # from .env import client_secret
 
     df_ = pd.read_csv('dataset.csv')
     df = df_.copy()

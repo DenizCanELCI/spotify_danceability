@@ -229,6 +229,7 @@ def y_guesses(X_train, y_train, X, best_model):
 
     y_pred_out = best_model.predict(X) #XXXTBD
 
+
     return y_pred_out
 
 def top_200_getter(y, y_pred):
@@ -292,10 +293,11 @@ def spotipy_add_playlist(username_id,
 
     return playlist_name
 
+def create_spotify_project():
+    #XXXTBD
+    return
 
 
 if __name__ == "__main__":
     print("Pipeline has started!!")
     main()
-
-

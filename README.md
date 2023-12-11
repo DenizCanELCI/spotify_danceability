@@ -24,3 +24,5 @@
 	 
   7. Web app runs and gives you the output as "Hello 12345678912 The ML Dance Playlist has been created:  <br>
 	ML Dance Playlist 14_48_time". <br>
+ ![image](https://github.com/Tuxedomask95/spotify_danceability/assets/83873791/08be475c-2f83-4864-a1ac-c6b6f3b7991f)
+

@@ -10,7 +10,16 @@
   pip install -r requirements.txt (works better on pycharm virtual environment!)
 
 ### Creation of dummy Spotify project (Will be done only once!):
-  The link explaining how to do it: https://www.codeproject.com/Tips/5276627/HowTo-Setup-a-Spotify-API-App-in-the-Spotify-Devel
+  Go to Spotify for Developers and:
+	Log in with your Spotify account.
+	Open the Dashboard.
+	Create an app.
+	Give it a name, e.g. Spotify Danceability Project.
+	Add a redirect URI, for example:
+	http://127.0.0.1:8888/callback
+	Save the app.
+	Copy your Client ID.
+	Generate/use a Client Secret where the dashboard/API flow provides one.
   
 ### How to run (on Windows):
   1. Install dependencies as written below in "Installation"

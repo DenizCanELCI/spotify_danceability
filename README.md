@@ -1,4 +1,4 @@
-# CURRENTLY API IS INACTIVE --------------- 
+# NEEDS SPOTIFY PREMIUM TO USE --------------- 
 
 # "Spotify Danceability ML Playlist" project description
 - The development of a Machine Learning model that guesses the danceability scores of Spotify songs ( (of 140k tracks in Spotify). 
